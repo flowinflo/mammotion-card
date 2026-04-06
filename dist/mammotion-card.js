@@ -100,6 +100,44 @@ function domainToHA(domain) {
   return map[domain] || domain;
 }
 
+// German translations for select option values
+const OPTION_LABELS = {
+  // Navigation mode
+  single_grid: "Einzelbahn",
+  double_grid: "Doppelbahn",
+  segment_grid: "Segmentbahn",
+  no_grid: "Ohne Bahn",
+  // Turning mode
+  zero_turn: "Nullwendung",
+  multipoint: "Mehrpunkt",
+  // Obstacle detection
+  direct_touch: "Direktkontakt",
+  slow_touch: "Langsamer Kontakt",
+  less_touch: "Weniger Kontakt",
+  no_touch: "Kein Kontakt",
+  sensitive: "Empfindlich",
+  // Charge mode
+  direct: "Direkt",
+  follow_perimeter: "Randverfolgung",
+  // Path order
+  border_first: "Rand zuerst",
+  grid_first: "Bahn zuerst",
+  // Angle mode
+  relative_angle: "Relativer Winkel",
+  absolute_angle: "Absoluter Winkel",
+  random_angle: "Zufälliger Winkel",
+  // Patrol rounds
+  none: "Keine",
+  one: "1 Runde",
+  two: "2 Runden",
+  three: "3 Runden",
+  four: "4 Runden",
+};
+
+function translateOption(value) {
+  return OPTION_LABELS[value] || value;
+}
+
 function discoverEntities(hass, lawnMowerEntityId) {
   if (!hass || !lawnMowerEntityId) return null;
 
@@ -813,7 +851,7 @@ class MammotionCard extends LitElement {
           ${options.map(
             (opt) =>
               html`<option value=${opt} ?selected=${opt === current}>
-                ${opt}
+                ${translateOption(opt)}
               </option>`
           )}
         </select>

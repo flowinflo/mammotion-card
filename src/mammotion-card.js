@@ -1,5 +1,5 @@
 import { LitElement, html, css } from "lit";
-import { discoverEntities, getStateValue, getNumericState } from "./entity-discovery.js";
+import { discoverEntities, getStateValue, getNumericState, translateOption } from "./entity-discovery.js";
 import "./editor.js";
 
 const CARD_VERSION = "0.1.0";
@@ -393,7 +393,7 @@ class MammotionCard extends LitElement {
         <label>${label}</label>
         <select @change=${(e) => this._setSelect(entityId, e.target.value)}>
           ${options.map(
-            (opt) => html`<option value=${opt} ?selected=${opt === current}>${opt}</option>`
+            (opt) => html`<option value=${opt} ?selected=${opt === current}>${translateOption(opt)}</option>`
           )}
         </select>
       </div>

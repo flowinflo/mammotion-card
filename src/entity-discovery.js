@@ -152,6 +152,37 @@ function domainToHA(domain) {
   return map[domain] || domain;
 }
 
+// German translations for select option values
+const OPTION_LABELS = {
+  single_grid: "Einzelbahn",
+  double_grid: "Doppelbahn",
+  segment_grid: "Segmentbahn",
+  no_grid: "Ohne Bahn",
+  zero_turn: "Nullwendung",
+  multipoint: "Mehrpunkt",
+  direct_touch: "Direktkontakt",
+  slow_touch: "Langsamer Kontakt",
+  less_touch: "Weniger Kontakt",
+  no_touch: "Kein Kontakt",
+  sensitive: "Empfindlich",
+  direct: "Direkt",
+  follow_perimeter: "Randverfolgung",
+  border_first: "Rand zuerst",
+  grid_first: "Bahn zuerst",
+  relative_angle: "Relativer Winkel",
+  absolute_angle: "Absoluter Winkel",
+  random_angle: "Zufälliger Winkel",
+  none: "Keine",
+  one: "1 Runde",
+  two: "2 Runden",
+  three: "3 Runden",
+  four: "4 Runden",
+};
+
+export function translateOption(value) {
+  return OPTION_LABELS[value] || value;
+}
+
 export function getState(hass, entityId) {
   if (!hass || !entityId) return null;
   return hass.states[entityId] || null;
