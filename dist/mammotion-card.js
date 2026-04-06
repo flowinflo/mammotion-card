@@ -761,6 +761,26 @@ class MammotionCard extends LitElement {
     const max = state.attributes?.max ?? 100;
     const step = state.attributes?.step ?? 1;
 
+    // If min === max the number entity is broken (e.g. blade_height 0-0)
+    // Show as read-only value instead of a broken slider
+    if (min === max) {
+      // Try to find a matching sensor with the same suffix for display
+      const suffix = entityId.replace(/^number\./, "");
+      const sensorId = `sensor.${suffix}`;
+      const sensorState = this.hass.states[sensorId];
+      const displayVal = sensorState
+        ? parseFloat(sensorState.state)
+        : val;
+      const sensorUnit =
+        sensorState?.attributes?.unit_of_measurement || unit;
+      return html`
+        <div class="slider-row">
+          <label>${label}</label>
+          <span class="slider-val readonly">${isNaN(displayVal) ? "?" : displayVal} ${sensorUnit}</span>
+        </div>
+      `;
+    }
+
     return html`
       <div class="slider-row">
         <label>${label}</label>
@@ -1176,6 +1196,12 @@ class MammotionCard extends LitElement {
         font-size: 13px;
         text-align: right;
         color: var(--primary-text-color);
+      }
+
+      .slider-val.readonly {
+        flex: 1;
+        font-weight: 500;
+        color: var(--secondary-text-color);
       }
 
       .select-row select {

@@ -352,6 +352,20 @@ class MammotionCard extends LitElement {
     const max = state.attributes?.max ?? 100;
     const step = state.attributes?.step ?? 1;
 
+    // If min === max the number entity is broken — show sensor fallback
+    if (min === max) {
+      const suffix = entityId.replace(/^number\./, "");
+      const sensorState = this.hass.states[`sensor.${suffix}`];
+      const displayVal = sensorState ? parseFloat(sensorState.state) : val;
+      const sensorUnit = sensorState?.attributes?.unit_of_measurement || unit;
+      return html`
+        <div class="slider-row">
+          <label>${label}</label>
+          <span class="slider-val readonly">${isNaN(displayVal) ? "?" : displayVal} ${sensorUnit}</span>
+        </div>
+      `;
+    }
+
     return html`
       <div class="slider-row">
         <label>${label}</label>
