@@ -1,0 +1,4 @@
+node_modules/
+.DS_Store
+*.log
+ssh-install-commands.txt
