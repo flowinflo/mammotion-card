@@ -7,7 +7,12 @@
 await customElements.whenDefined("hui-view");
 const LitElement = Object.getPrototypeOf(customElements.get("hui-view"));
 const html = LitElement.prototype.html;
-const css = LitElement.prototype.css;
+const css = (strings, ...values) => {
+  const text = strings.reduce((acc, str, i) => acc + str + (values[i] || ""), "");
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(text);
+  return sheet;
+};
 
 // ============================================================
 // Entity Discovery
