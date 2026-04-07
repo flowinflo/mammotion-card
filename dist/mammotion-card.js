@@ -1,5 +1,5 @@
 /**
- * Mammotion Dashboard Card v0.1.0
+ * Mammotion Dashboard Card v0.2.0
  * Custom Lovelace Card for Mammotion Luba robotic mowers
  */
 
@@ -385,7 +385,7 @@ customElements.define("mammotion-card-editor", MammotionCardEditor);
 // Main Card
 // ============================================================
 
-const CARD_VERSION = "0.1.0";
+const CARD_VERSION = "0.2.0";
 
 class MammotionCard extends LitElement {
   static get properties() {
@@ -795,14 +795,20 @@ class MammotionCard extends LitElement {
     if (!entityId || !this.hass.states[entityId]) return html``;
     const state = this.hass.states[entityId];
     const val = parseFloat(state.state);
-    const min = state.attributes?.min ?? 0;
-    const max = state.attributes?.max ?? 100;
+    const rawMin = state.attributes?.min;
+    const rawMax = state.attributes?.max;
+    const min = rawMin ?? 0;
+    const max = rawMax ?? 100;
     const step = state.attributes?.step ?? 1;
 
-    // If min === max the number entity is broken (e.g. blade_height 0-0)
-    // Show as read-only value instead of a broken slider
-    if (min === max) {
-      // Try to find a matching sensor with the same suffix for display
+    // Detect broken number entities
+    const isBroken =
+      min >= max ||
+      max === 0 ||
+      (rawMin === undefined && rawMax === undefined && val === 0);
+
+    if (isBroken) {
+      // Fallback: show matching sensor value as read-only
       const suffix = entityId.replace(/^number\./, "");
       const sensorId = `sensor.${suffix}`;
       const sensorState = this.hass.states[sensorId];

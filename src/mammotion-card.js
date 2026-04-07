@@ -2,7 +2,7 @@ import { LitElement, html, css } from "lit";
 import { discoverEntities, getStateValue, getNumericState, translateOption } from "./entity-discovery.js";
 import "./editor.js";
 
-const CARD_VERSION = "0.1.0";
+const CARD_VERSION = "0.2.0";
 
 class MammotionCard extends LitElement {
   static get properties() {
@@ -348,12 +348,18 @@ class MammotionCard extends LitElement {
     if (!entityId || !this.hass.states[entityId]) return "";
     const state = this.hass.states[entityId];
     const val = parseFloat(state.state);
-    const min = state.attributes?.min ?? 0;
-    const max = state.attributes?.max ?? 100;
+    const rawMin = state.attributes?.min;
+    const rawMax = state.attributes?.max;
+    const min = rawMin ?? 0;
+    const max = rawMax ?? 100;
     const step = state.attributes?.step ?? 1;
 
-    // If min === max the number entity is broken — show sensor fallback
-    if (min === max) {
+    const isBroken =
+      min >= max ||
+      max === 0 ||
+      (rawMin === undefined && rawMax === undefined && val === 0);
+
+    if (isBroken) {
       const suffix = entityId.replace(/^number\./, "");
       const sensorState = this.hass.states[`sensor.${suffix}`];
       const displayVal = sensorState ? parseFloat(sensorState.state) : val;
