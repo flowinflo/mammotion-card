@@ -364,10 +364,14 @@ class MammotionCard extends LitElement {
       const sensorState = this.hass.states[`sensor.${suffix}`];
       const displayVal = sensorState ? parseFloat(sensorState.state) : val;
       const sensorUnit = sensorState?.attributes?.unit_of_measurement || unit;
+      const defaults = { schnitthohe: [15, 100], aufgabengeschwindigkeit: [0.2, 1.2], wegabstand: [5, 35] };
+      const key = entityId.split("_").pop();
+      const [dMin, dMax] = defaults[key] || [0, 100];
       return html`
-        <div class="slider-row">
+        <div class="slider-row disabled">
           <label>${label}</label>
-          <span class="slider-val readonly">${isNaN(displayVal) ? "?" : displayVal} ${sensorUnit}</span>
+          <input type="range" min=${dMin} max=${dMax} step=${step} .value=${String(isNaN(displayVal) ? 0 : displayVal)} disabled />
+          <span class="slider-val">${isNaN(displayVal) ? "?" : displayVal} ${sensorUnit} <ha-icon icon="mdi:lock" style="--mdc-icon-size:14px"></ha-icon></span>
         </div>
       `;
     }
@@ -767,6 +771,14 @@ class MammotionCard extends LitElement {
         font-size: 13px;
         text-align: right;
         color: var(--primary-text-color);
+      }
+
+      .slider-row.disabled {
+        opacity: 0.5;
+      }
+
+      .slider-row.disabled input[type="range"] {
+        pointer-events: none;
       }
 
       .select-row select {
