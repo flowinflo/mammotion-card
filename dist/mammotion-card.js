@@ -3,13 +3,11 @@
  * Custom Lovelace Card for Mammotion Luba robotic mowers
  */
 
-// Resolve LitElement from HA's custom elements (works across HA versions)
-const LitElement = Object.getPrototypeOf(
-  customElements.get("hui-view") || customElements.get("ha-panel-lovelace")
-);
-const { html, css } = LitElement.prototype.html
-  ? { html: LitElement.prototype.html, css: LitElement.prototype.css }
-  : await import("lit");
+// Wait for HA to load, then resolve LitElement from its custom elements
+await customElements.whenDefined("hui-view");
+const LitElement = Object.getPrototypeOf(customElements.get("hui-view"));
+const html = LitElement.prototype.html;
+const css = LitElement.prototype.css;
 
 // ============================================================
 // Entity Discovery
