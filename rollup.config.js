@@ -8,6 +8,4 @@ export default {
     format: "es",
   },
   plugins: [resolve(), terser()],
-  // lit is provided by HA at runtime — don't bundle it
-  external: ["lit"],
 };
