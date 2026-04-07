@@ -9,7 +9,7 @@ const MODULES_DEFAULT = {
   maintenance: false,
   map: false,
   camera: false,
-  schedule: false,
+  schedule: true,
 };
 
 export class MammotionCardEditor extends LitElement {

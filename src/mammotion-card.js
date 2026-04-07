@@ -2,7 +2,7 @@ import { LitElement, html, css } from "lit";
 import { discoverEntities, getStateValue, getNumericState, translateOption } from "./entity-discovery.js";
 import "./editor.js";
 
-const CARD_VERSION = "0.2.0";
+const CARD_VERSION = "0.3.0";
 
 class MammotionCard extends LitElement {
   static get properties() {
@@ -29,6 +29,7 @@ class MammotionCard extends LitElement {
         controls: true,
         mowing_config: true,
         zones: true,
+        schedule: true,
         device: true,
       },
     };
@@ -45,6 +46,7 @@ class MammotionCard extends LitElement {
         controls: true,
         mowing_config: true,
         zones: true,
+        schedule: true,
         device: true,
       },
       ...config,
@@ -138,6 +140,7 @@ class MammotionCard extends LitElement {
         ${modules.controls !== false ? this._renderControls(state) : ""}
         ${modules.mowing_config && isExpert ? this._renderMowingConfig() : ""}
         ${modules.zones !== false ? this._renderZones() : ""}
+        ${modules.schedule !== false ? this._renderSchedule(isExpert) : ""}
         ${modules.device !== false && isExpert ? this._renderDevice() : ""}
 
         <div class="footer">
@@ -311,7 +314,8 @@ class MammotionCard extends LitElement {
           ${areas.map((eid) => {
             const state = this.hass.states[eid];
             if (!state) return "";
-            const name = state.attributes?.friendly_name || eid;
+            const rawName = state.attributes?.friendly_name || eid;
+            const name = rawName.replace(/^.*?\s+(Bereich\s+)/i, "$1");
             const isOn = state.state === "on";
             return html`
               <div class="zone-row">
@@ -340,6 +344,77 @@ class MammotionCard extends LitElement {
           ${this._renderToggle(ents.switches.rain_robot, "Regenerkennung (Roboter)")}
           ${this._renderToggle(ents.switches.side_led, "Seitenlicht")}
         </div>
+      </div>
+    `;
+  }
+
+  _renderSchedule(isExpert) {
+    const ents = this._entities;
+    const tasks = ents.tasks || [];
+    const nonWorkHours = getStateValue(this.hass, ents.sensors.non_work_hours);
+    const taskDuration = getStateValue(this.hass, ents.sensors.task_duration);
+    const taskArea = getStateValue(this.hass, ents.sensors.task_area);
+
+    if (tasks.length === 0 && !nonWorkHours && !taskDuration) return "";
+
+    return html`
+      <div class="section">
+        <div class="section-title">
+          <ha-icon icon="mdi:calendar-clock"></ha-icon> Zeitplan
+        </div>
+
+        ${tasks.length > 0
+          ? html`
+              <div class="task-buttons">
+                ${tasks.map((eid) => {
+                  const state = this.hass.states[eid];
+                  if (!state) return "";
+                  const rawName = state.attributes?.friendly_name || eid;
+                  const name = rawName.replace(/^.*?\s+/, "");
+                  return html`
+                    <button class="task-btn" @click=${() => this._pressButton(eid)}>
+                      <ha-icon icon="mdi:play-circle-outline"></ha-icon>
+                      ${name}
+                    </button>
+                  `;
+                })}
+              </div>
+            `
+          : ""}
+
+        ${nonWorkHours || taskDuration || taskArea
+          ? html`
+              <div class="schedule-info">
+                ${nonWorkHours && nonWorkHours !== "unknown" && nonWorkHours !== "unavailable"
+                  ? html`<div class="schedule-row">
+                      <ha-icon icon="mdi:clock-remove-outline"></ha-icon>
+                      <span>Arbeitsfreie Zeit: ${nonWorkHours}</span>
+                    </div>`
+                  : ""}
+                ${taskDuration && taskDuration !== "unknown" && taskDuration !== "unavailable"
+                  ? html`<div class="schedule-row">
+                      <ha-icon icon="mdi:timer-outline"></ha-icon>
+                      <span>Aufgabendauer: ${this._formatMinutes(parseFloat(taskDuration))}</span>
+                    </div>`
+                  : ""}
+                ${taskArea && taskArea !== "unknown" && taskArea !== "unavailable"
+                  ? html`<div class="schedule-row">
+                      <ha-icon icon="mdi:vector-square"></ha-icon>
+                      <span>Aufgabenbereich: ${taskArea} m²</span>
+                    </div>`
+                  : ""}
+              </div>
+            `
+          : ""}
+
+        ${isExpert
+          ? html`
+              <div class="schedule-hint">
+                <ha-icon icon="mdi:information-outline"></ha-icon>
+                Komplexe Zeitpläne über HA-Automationen einrichten
+              </div>
+            `
+          : ""}
       </div>
     `;
   }
@@ -384,7 +459,7 @@ class MammotionCard extends LitElement {
           min=${min}
           max=${max}
           step=${step}
-          .value=${val}
+          .value=${String(val)}
           @change=${(e) => this._setNumber(entityId, parseFloat(e.target.value))}
         />
         <span class="slider-val">${val} ${unit}</span>
@@ -480,6 +555,7 @@ class MammotionCard extends LitElement {
       count += Object.keys(this._entities[group] || {}).length;
     }
     count += (this._entities.areas || []).length;
+    count += (this._entities.tasks || []).length;
     return count;
   }
 
@@ -488,6 +564,8 @@ class MammotionCard extends LitElement {
       :host {
         --mmc-spacing: 12px;
         --mmc-radius: 12px;
+        container-type: inline-size;
+        container-name: mmc;
       }
 
       ha-card {
@@ -532,7 +610,7 @@ class MammotionCard extends LitElement {
       }
 
       .mower-name {
-        font-size: 18px;
+        font-size: 16px;
         font-weight: 500;
         color: var(--primary-text-color);
       }
@@ -589,7 +667,7 @@ class MammotionCard extends LitElement {
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        font-size: 12px;
+        font-size: 14px;
         font-weight: 600;
         color: var(--primary-text-color);
       }
@@ -821,6 +899,70 @@ class MammotionCard extends LitElement {
         color: var(--primary-text-color);
       }
 
+      /* Schedule */
+      .task-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+
+      .task-btn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border: 1px solid var(--divider-color, #e0e0e0);
+        border-radius: var(--mmc-radius);
+        background: var(--secondary-background-color, #f5f5f5);
+        color: var(--primary-text-color);
+        font-size: 13px;
+        cursor: pointer;
+        transition: opacity 0.2s;
+        min-height: 44px;
+      }
+
+      .task-btn:active {
+        opacity: 0.7;
+      }
+
+      .task-btn ha-icon {
+        --mdc-icon-size: 18px;
+        color: var(--state-active-color, #4caf50);
+      }
+
+      .schedule-info {
+        display: grid;
+        gap: 4px;
+        margin-bottom: 8px;
+      }
+
+      .schedule-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--secondary-text-color);
+      }
+
+      .schedule-row ha-icon {
+        --mdc-icon-size: 16px;
+      }
+
+      .schedule-hint {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--secondary-text-color);
+        opacity: 0.7;
+        font-style: italic;
+      }
+
+      .schedule-hint ha-icon {
+        --mdc-icon-size: 14px;
+      }
+
       /* Footer */
       .footer {
         display: flex;
@@ -828,6 +970,96 @@ class MammotionCard extends LitElement {
         padding-top: 4px;
         font-size: 10px;
         color: var(--disabled-text-color, #999);
+      }
+
+      /* ===== Responsive: Mobile-first ===== */
+
+      /* Ensure touch targets everywhere */
+      ha-switch {
+        min-height: 44px;
+        min-width: 44px;
+      }
+
+      .zone-row,
+      .toggle-row {
+        min-height: 44px;
+      }
+
+      /* Small cards (< 360px) — stack buttons vertically */
+      @container mmc (max-width: 359px) {
+        .button-row {
+          flex-direction: column;
+        }
+
+        .task-buttons {
+          flex-direction: column;
+        }
+
+        .task-btn {
+          width: 100%;
+          justify-content: center;
+        }
+
+        .status-header {
+          flex-wrap: wrap;
+        }
+
+        .battery-wrap {
+          margin-left: auto;
+        }
+
+        .detail-badge {
+          font-size: 11px;
+          padding: 2px 6px;
+        }
+
+        .slider-row label,
+        .select-row label {
+          flex: 0 0 90px;
+          font-size: 12px;
+        }
+
+        .slider-val {
+          flex: 0 0 55px;
+          font-size: 12px;
+        }
+      }
+
+      /* Very narrow (< 300px) — stack slider labels */
+      @container mmc (max-width: 299px) {
+        .slider-row,
+        .select-row {
+          flex-wrap: wrap;
+        }
+
+        .slider-row label,
+        .select-row label {
+          flex: 1 1 100%;
+          margin-bottom: 2px;
+        }
+
+        .slider-row input[type="range"] {
+          flex: 1 1 60%;
+        }
+
+        .slider-val {
+          flex: 0 0 auto;
+        }
+      }
+
+      /* Wider cards (> 500px) — can show more */
+      @container mmc (min-width: 500px) {
+        .mower-name {
+          font-size: 18px;
+        }
+
+        .button-row {
+          gap: 12px;
+        }
+
+        .config-grid {
+          grid-template-columns: 1fr 1fr;
+        }
       }
     `;
   }
