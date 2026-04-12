@@ -2,7 +2,7 @@ import { LitElement, html, css } from "lit";
 import { discoverEntities, getStateValue, getNumericState, translateOption } from "./entity-discovery.js";
 import "./editor.js";
 
-const CARD_VERSION = "0.5.0";
+const CARD_VERSION = "0.6.0";
 
 class MammotionCard extends LitElement {
   static get properties() {
@@ -13,6 +13,7 @@ class MammotionCard extends LitElement {
       _syncingMap: { state: true },
       _syncingSchedule: { state: true },
       _serviceError: { state: true },
+      _openSections: { state: true },
     };
   }
 
@@ -30,6 +31,8 @@ class MammotionCard extends LitElement {
       modules: {
         status: true,
         controls: true,
+        map: true,
+        camera: true,
         mowing_config: true,
         zones: true,
         schedule: true,
@@ -47,6 +50,8 @@ class MammotionCard extends LitElement {
       modules: {
         status: true,
         controls: true,
+        map: true,
+        camera: true,
         mowing_config: true,
         zones: true,
         schedule: true,
@@ -55,6 +60,13 @@ class MammotionCard extends LitElement {
       ...config,
     };
     this._entities = null;
+    // Initialize accordion state based on mode
+    const isExpert = this._config.mode === "expert";
+    this._openSections = new Set(
+      isExpert
+        ? ["map", "zones", "mowing"]
+        : ["map", "zones"]
+    );
   }
 
   set hass(hass) {
@@ -75,6 +87,8 @@ class MammotionCard extends LitElement {
   getCardSize() {
     return this._config?.mode === "expert" ? 8 : 4;
   }
+
+  // --- State helpers ---
 
   _getMowerState() {
     return getStateValue(this.hass, this._config.entity) || "unknown";
@@ -122,6 +136,45 @@ class MammotionCard extends LitElement {
     return "var(--error-color, #f44336)";
   }
 
+  // --- Accordion ---
+
+  _toggleSection(section) {
+    if (!this._openSections) this._openSections = new Set();
+    if (this._openSections.has(section)) {
+      this._openSections.delete(section);
+    } else {
+      this._openSections.add(section);
+    }
+    // Invalidate Leaflet size when map section opens
+    if (section === "map" && this._openSections.has("map") && this._leafletMap) {
+      setTimeout(() => this._leafletMap.invalidateSize(), 350);
+    }
+    this.requestUpdate();
+  }
+
+  _isSectionOpen(section) {
+    return this._openSections ? this._openSections.has(section) : false;
+  }
+
+  _renderSection(key, icon, title, content, headerExtra) {
+    const isOpen = this._isSectionOpen(key);
+    return html`
+      <div class="section">
+        <div class="section-header" @click=${() => this._toggleSection(key)}>
+          <ha-icon icon=${icon}></ha-icon>
+          <span class="section-title-text">${title}</span>
+          ${headerExtra || ""}
+          <span class="chevron ${isOpen ? "open" : ""}">▸</span>
+        </div>
+        <div class="accordion-content ${isOpen ? "open" : ""}">
+          ${content}
+        </div>
+      </div>
+    `;
+  }
+
+  // --- Main render ---
+
   render() {
     if (!this.hass || !this._config) {
       return html`<ha-card><div class="card-content"><div class="loading">Lade...</div></div></ha-card>`;
@@ -150,15 +203,37 @@ class MammotionCard extends LitElement {
     const isExpert = this._config.mode === "expert";
     const modules = this._config.modules || {};
 
+    // Sync buttons for section headers
+    const syncMapBtn = this._entities.buttons.sync_map
+      ? html`<button
+          class="sync-btn ${this._syncingMap ? "syncing" : ""}"
+          @click=${(e) => { e.stopPropagation(); this._handleSync("map"); }}
+          title="Karte synchronisieren"
+          aria-label="Karte synchronisieren"
+        ><svg viewBox="0 0 24 24"><path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg></button>`
+      : "";
+
+    const syncScheduleBtn = this._entities.buttons.sync_schedule
+      ? html`<button
+          class="sync-btn ${this._syncingSchedule ? "syncing" : ""}"
+          @click=${(e) => { e.stopPropagation(); this._handleSync("schedule"); }}
+          title="Zeitplan synchronisieren"
+          aria-label="Zeitplan synchronisieren"
+        ><svg viewBox="0 0 24 24"><path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg></button>`
+      : "";
+
     return html`
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
       <ha-card>
         <div class="card-content">
           ${modules.status !== false ? this._renderStatus(name, state, battery, isCharging, isExpert) : ""}
           ${modules.controls !== false ? this._renderControls(state) : ""}
-          ${modules.mowing_config && isExpert ? this._renderMowingConfig() : ""}
-          ${modules.zones !== false ? this._renderZones() : ""}
-          ${modules.schedule !== false ? this._renderSchedule(isExpert) : ""}
-          ${modules.device !== false && isExpert ? this._renderDevice() : ""}
+          ${modules.map !== false ? this._renderSection("map", "mdi:map-marker-radius", "Karte", this._renderMapContent(state)) : ""}
+          ${modules.camera !== false && this._entities.camera ? this._renderSection("camera", "mdi:camera", "Kamera", this._renderCameraContent()) : ""}
+          ${modules.zones !== false ? this._renderSection("zones", "mdi:vector-square", "Bereiche", this._renderZonesContent(), syncMapBtn) : ""}
+          ${modules.mowing_config && isExpert ? this._renderSection("mowing", "mdi:cog", "Mäh-Einstellungen", this._renderMowingContent()) : ""}
+          ${modules.schedule !== false ? this._renderSection("schedule", "mdi:calendar-clock", "Zeitplan", this._renderScheduleContent(isExpert), syncScheduleBtn) : ""}
+          ${modules.device !== false && isExpert ? this._renderSection("device", "mdi:tune", "Gerätesteuerung", this._renderDeviceContent()) : ""}
 
           ${this._serviceError
             ? html`<div class="service-error">
@@ -174,6 +249,8 @@ class MammotionCard extends LitElement {
       </ha-card>
     `;
   }
+
+  // --- Module renderers (content only, no section wrapper) ---
 
   _renderStatus(name, state, battery, isCharging, isExpert) {
     const progress = getNumericState(this.hass, this._entities.sensors.progress);
@@ -306,106 +383,172 @@ class MammotionCard extends LitElement {
     `;
   }
 
-  _renderMowingConfig() {
-    const ents = this._entities;
+  _renderMapContent(state) {
+    const lat = getNumericState(this.hass, this._entities.sensors.latitude);
+    const lng = getNumericState(this.hass, this._entities.sensors.longitude);
+    const sats = getNumericState(this.hass, this._entities.sensors.satellites_robot);
+
+    if (lat === null || lng === null) {
+      return html`<div class="map-placeholder">Keine GPS-Position verfügbar</div>`;
+    }
+
     return html`
-      <div class="section">
-        <div class="section-title">
-          <ha-icon icon="mdi:cog"></ha-icon> Mäh-Einstellungen
-        </div>
-        <div class="config-grid">
-          ${this._renderNumberSlider(ents.numbers.blade_height, "Schnitthöhe", "mm")}
-          ${this._renderNumberSlider(ents.numbers.working_speed, "Geschwindigkeit", "m/s")}
-          ${this._renderNumberSlider(ents.numbers.path_spacing, "Wegabstand", "cm")}
-          ${this._renderSelect(ents.selects.nav_mode, "Navigation")}
-          ${this._renderSelect(ents.selects.turn_mode, "Wendemodus")}
-          ${this._renderSelect(ents.selects.obstacle_mode, "Hinderniserkennung")}
-        </div>
+      <div id="mmc-map" class="map-container"></div>
+      ${sats !== null ? html`<div class="map-info"><ha-icon icon="mdi:satellite-variant" style="--mdc-icon-size:14px"></ha-icon> ${sats} Satelliten · ${lat.toFixed(5)}, ${lng.toFixed(5)}</div>` : ""}
+    `;
+  }
+
+  _renderCameraContent() {
+    const cameraEntity = this._entities.camera;
+    if (!cameraEntity || !this.hass.states[cameraEntity]) {
+      return html`<div class="map-placeholder">Keine Kamera verfügbar</div>`;
+    }
+
+    // Only render stream when section is open (saves bandwidth)
+    if (!this._isSectionOpen("camera")) return "";
+
+    const stateObj = this.hass.states[cameraEntity];
+    return html`
+      <div class="camera-container">
+        <img
+          src="/api/camera_proxy/${cameraEntity}"
+          alt="Mäher-Kamera"
+          class="camera-image"
+          @error=${(e) => { e.target.style.display = "none"; }}
+        />
       </div>
     `;
   }
 
-  _renderZones() {
+  _renderZonesContent() {
     const areas = this._entities.areas;
-    if (!areas || areas.length === 0) return "";
-    const syncMapEntity = this._entities.buttons.sync_map;
+    if (!areas || areas.length === 0) return html`<div class="empty-hint">Keine Bereiche gefunden</div>`;
 
     return html`
-      <div class="section">
-        <div class="section-title">
-          <ha-icon icon="mdi:vector-square"></ha-icon> Bereiche
-          ${syncMapEntity
-            ? html`
-                <button
-                  class="sync-btn ${this._syncingMap ? "syncing" : ""}"
-                  @click=${() => this._handleSync("map")}
-                  title="Karte synchronisieren"
-                  aria-label="Karte synchronisieren"
-                >
-                  <svg viewBox="0 0 24 24">
-                    <path
-                      fill="currentColor"
-                      d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"
-                    />
-                  </svg>
-                </button>
-              `
-            : ""}
-        </div>
-        <div class="zone-list">
-          ${areas.map((eid) => {
-            const state = this.hass.states[eid];
-            const isUnavailable = !state || state.state === "unavailable";
-            const isOn = state?.state === "on";
+      <div class="zone-list">
+        ${areas.map((eid) => {
+          const state = this.hass.states[eid];
+          const isUnavailable = !state || state.state === "unavailable";
+          const isOn = state?.state === "on";
 
-            // Friendly name with device prefix removal
-            const rawName = state?.attributes?.friendly_name || "";
-            let name;
-            if (rawName && rawName !== eid) {
-              // Remove device prefix like "Luba-MBGZ9JC5 Bereich ..." → "Bereich ..."
-              name = rawName.replace(/^.*?\s+(Bereich)/i, "$1");
-            } else {
-              // Fallback: extract from entity_id
-              const match = eid.match(/bereich_area_(\d+(?:_\d+)?)$/);
-              name = match
-                ? `Bereich ${match[1].replace(/_/g, ".")}`
-                : "Bereich";
-            }
+          const rawName = state?.attributes?.friendly_name || "";
+          let name;
+          if (rawName && rawName !== eid) {
+            name = rawName.replace(/^[A-Za-z]+-[A-Z0-9]+\s+/, "");
+            if (name === rawName) name = rawName.replace(/^.*?\s+(Bereich)/i, "$1");
+          } else {
+            const match = eid.match(/bereich_(\w+)$/);
+            name = match ? `Bereich ${match[1].replace(/_/g, ".")}` : "Bereich";
+          }
 
-            return html`
-              <div class="zone-row ${isUnavailable ? "unavailable" : ""}">
-                <span class="zone-name">
-                  ${name}
-                  ${isUnavailable
-                    ? html`<span class="unavailable-hint"
-                        >(nicht verfügbar)</span
-                      >`
-                    : ""}
-                </span>
-                <ha-switch
-                  .checked=${isOn}
-                  .disabled=${isUnavailable}
-                  @change=${() => !isUnavailable && this._toggleSwitch(eid)}
-                ></ha-switch>
-              </div>
-            `;
-          })}
-        </div>
+          return html`
+            <div class="zone-row ${isUnavailable ? "unavailable" : ""}">
+              <span class="zone-name">
+                ${name}
+                ${isUnavailable
+                  ? html`<span class="unavailable-hint">(nicht verfügbar)</span>`
+                  : ""}
+              </span>
+              <ha-switch
+                .checked=${isOn}
+                .disabled=${isUnavailable}
+                @change=${() => !isUnavailable && this._toggleSwitch(eid)}
+              ></ha-switch>
+            </div>
+          `;
+        })}
       </div>
     `;
   }
 
-  _renderDevice() {
+  _renderMowingContent() {
     const ents = this._entities;
     return html`
-      <div class="section">
-        <div class="section-title">
-          <ha-icon icon="mdi:tune"></ha-icon> Gerätesteuerung
-        </div>
-        <div class="device-toggles">
-          ${this._renderCombinedRainToggle()}
-          ${this._renderToggle(ents.switches.side_led, "Seitenlicht")}
-        </div>
+      <div class="config-grid">
+        ${this._renderNumberSlider(ents.numbers.blade_height, "Schnitthöhe", "mm")}
+        ${this._renderNumberSlider(ents.numbers.working_speed, "Geschwindigkeit", "m/s")}
+        ${this._renderNumberSlider(ents.numbers.path_spacing, "Wegabstand", "cm")}
+        ${this._renderSelect(ents.selects.nav_mode, "Navigation")}
+        ${this._renderSelect(ents.selects.turn_mode, "Wendemodus")}
+        ${this._renderSelect(ents.selects.obstacle_mode, "Hinderniserkennung")}
+      </div>
+    `;
+  }
+
+  _renderScheduleContent(isExpert) {
+    const ents = this._entities;
+    const tasks = ents.tasks || [];
+    const taskAreas = ents.task_areas || [];
+    const nonWorkHours = getStateValue(this.hass, ents.sensors.non_work_hours);
+    const taskDuration = getNumericState(this.hass, ents.sensors.task_duration);
+
+    return html`
+      ${tasks.length > 0
+        ? html`
+            <div class="task-list">
+              ${tasks.map((eid) => {
+                const state = this.hass.states[eid];
+                if (!state) return "";
+                const rawName = state.attributes?.friendly_name || eid;
+                const name = rawName.replace(/^[A-Za-z]+-[A-Z0-9]+\s+/, "") || rawName.replace(/^.*?\s+/, "");
+                const durationStr = taskDuration !== null ? ` · ~${Math.ceil(taskDuration)} Min` : "";
+                return html`
+                  <button class="task-btn" @click=${() => this._pressButton(eid)}>
+                    <ha-icon icon="mdi:play-circle-outline"></ha-icon>
+                    <span class="task-label">${name}${durationStr}</span>
+                  </button>
+                `;
+              })}
+            </div>
+          `
+        : ""}
+
+      ${taskAreas.length > 0
+        ? html`
+            <div class="task-area-status">
+              ${taskAreas.map((eid) => {
+                const state = this.hass.states[eid];
+                if (!state || state.state === "unknown" || state.state === "unavailable") return "";
+                const rawName = state.attributes?.friendly_name || eid;
+                const label = rawName.replace(/^[A-Za-z]+-[A-Z0-9]+\s+/, "").replace(/^Aufgabenbereich\s*/, "") || "Bereich";
+                return html`
+                  <span class="task-area-pill ${this._taskAreaClass(state.state)}">
+                    ${label}: ${this._taskAreaLabel(state.state)}
+                  </span>
+                `;
+              })}
+            </div>
+          `
+        : ""}
+
+      ${nonWorkHours && nonWorkHours !== "unknown" && nonWorkHours !== "unavailable"
+        ? html`
+            <div class="schedule-info">
+              <div class="schedule-row">
+                <ha-icon icon="mdi:clock-remove-outline"></ha-icon>
+                <span>Ruhezeit: ${this._formatNonWorkHours(nonWorkHours)}</span>
+              </div>
+            </div>
+          `
+        : ""}
+
+      ${isExpert
+        ? html`
+            <div class="schedule-hint">
+              <ha-icon icon="mdi:information-outline"></ha-icon>
+              Weitere Mähpläne können in der Mammotion App erstellt werden.
+            </div>
+          `
+        : ""}
+    `;
+  }
+
+  _renderDeviceContent() {
+    const ents = this._entities;
+    return html`
+      <div class="device-toggles">
+        ${this._renderCombinedRainToggle()}
+        ${this._renderToggle(ents.switches.side_led, "Seitenlicht")}
       </div>
     `;
   }
@@ -428,142 +571,7 @@ class MammotionCard extends LitElement {
     `;
   }
 
-  async _toggleRainProtection(turnOn) {
-    const service = turnOn ? "turn_on" : "turn_off";
-    const ent1 = this._entities?.switches?.rain_mowing;
-    const ent2 = this._entities?.switches?.rain_robot;
-    try {
-      if (ent1) await this.hass.callService("switch", service, { entity_id: ent1 });
-      if (ent2) await this.hass.callService("switch", service, { entity_id: ent2 });
-    } catch (e) {
-      this._showServiceError(e.message || "Regenschutz-Umschaltung fehlgeschlagen");
-    }
-  }
-
-  _renderSchedule(isExpert) {
-    const ents = this._entities;
-    const tasks = ents.tasks || [];
-    const taskAreas = ents.task_areas || [];
-    const nonWorkHours = getStateValue(this.hass, ents.sensors.non_work_hours);
-    const taskDuration = getNumericState(this.hass, ents.sensors.task_duration);
-    const syncScheduleEntity = ents.buttons.sync_schedule;
-
-    if (tasks.length === 0 && !nonWorkHours && taskDuration === null) return "";
-
-    return html`
-      <div class="section">
-        <div class="section-title">
-          <ha-icon icon="mdi:calendar-clock"></ha-icon> Zeitplan
-          ${syncScheduleEntity
-            ? html`
-                <button
-                  class="sync-btn ${this._syncingSchedule ? "syncing" : ""}"
-                  @click=${() => this._handleSync("schedule")}
-                  title="Zeitplan synchronisieren"
-                  aria-label="Zeitplan synchronisieren"
-                >
-                  <svg viewBox="0 0 24 24">
-                    <path
-                      fill="currentColor"
-                      d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"
-                    />
-                  </svg>
-                </button>
-              `
-            : ""}
-        </div>
-
-        ${tasks.length > 0
-          ? html`
-              <div class="task-list">
-                ${tasks.map((eid) => {
-                  const state = this.hass.states[eid];
-                  if (!state) return "";
-                  const rawName = state.attributes?.friendly_name || eid;
-                  // Remove device prefix: "Luba-MBGZ9JC5 Normal 2 Tage" → "Normal 2 Tage"
-                  const name = rawName.replace(/^[A-Za-z]+-[A-Z0-9]+\s+/, "") || rawName.replace(/^.*?\s+/, "");
-                  const durationStr = taskDuration !== null ? ` · ~${Math.ceil(taskDuration)} Min` : "";
-                  return html`
-                    <button class="task-btn" @click=${() => this._pressButton(eid)}>
-                      <ha-icon icon="mdi:play-circle-outline"></ha-icon>
-                      <span class="task-label">${name}${durationStr}</span>
-                    </button>
-                  `;
-                })}
-              </div>
-            `
-          : ""}
-
-        ${taskAreas.length > 0
-          ? html`
-              <div class="task-area-status">
-                ${taskAreas.map((eid) => {
-                  const state = this.hass.states[eid];
-                  if (!state || state.state === "unknown" || state.state === "unavailable") return "";
-                  const rawName = state.attributes?.friendly_name || eid;
-                  const label = rawName.replace(/^[A-Za-z]+-[A-Z0-9]+\s+/, "").replace(/^Aufgabenbereich\s*/, "") || "Bereich";
-                  return html`
-                    <span class="task-area-pill ${this._taskAreaClass(state.state)}">
-                      ${label}: ${this._taskAreaLabel(state.state)}
-                    </span>
-                  `;
-                })}
-              </div>
-            `
-          : ""}
-
-        ${nonWorkHours && nonWorkHours !== "unknown" && nonWorkHours !== "unavailable"
-          ? html`
-              <div class="schedule-info">
-                <div class="schedule-row">
-                  <ha-icon icon="mdi:clock-remove-outline"></ha-icon>
-                  <span>Ruhezeit: ${this._formatNonWorkHours(nonWorkHours)}</span>
-                </div>
-              </div>
-            `
-          : ""}
-
-        ${isExpert
-          ? html`
-              <div class="schedule-hint">
-                <ha-icon icon="mdi:information-outline"></ha-icon>
-                Weitere Mähpläne können in der Mammotion App erstellt werden.
-              </div>
-            `
-          : ""}
-      </div>
-    `;
-  }
-
-  _taskAreaClass(state) {
-    const s = state.toUpperCase();
-    if (s === "MOWING") return "active";
-    if (s === "COMPLETED") return "completed";
-    if (s === "WAITING") return "waiting";
-    return "other";
-  }
-
-  _taskAreaLabel(state) {
-    const labels = {
-      MOWING: "Mäht",
-      WAITING: "Wartet",
-      COMPLETED: "Fertig",
-      NOT_STARTED: "Nicht gestartet",
-    };
-    return labels[state.toUpperCase()] || state;
-  }
-
-  _formatNonWorkHours(value) {
-    if (!value || value === "Not set") return "Keine Ruhezeit konfiguriert";
-    // Convert "06:26am - 08:10pm" → "06:26 - 20:10"
-    return value.replace(/(\d{1,2}:\d{2})(am|pm)/gi, (_, time, ampm) => {
-      const [h, m] = time.split(":");
-      let hour = parseInt(h, 10);
-      if (ampm.toLowerCase() === "pm" && hour !== 12) hour += 12;
-      if (ampm.toLowerCase() === "am" && hour === 12) hour = 0;
-      return `${String(hour).padStart(2, "0")}:${m}`;
-    });
-  }
+  // --- Sub-renderers ---
 
   _renderNumberSlider(entityId, label, unit) {
     if (!entityId || !this.hass.states[entityId]) return "";
@@ -698,6 +706,18 @@ class MammotionCard extends LitElement {
     }
   }
 
+  async _toggleRainProtection(turnOn) {
+    const service = turnOn ? "turn_on" : "turn_off";
+    const ent1 = this._entities?.switches?.rain_mowing;
+    const ent2 = this._entities?.switches?.rain_robot;
+    try {
+      if (ent1) await this.hass.callService("switch", service, { entity_id: ent1 });
+      if (ent2) await this.hass.callService("switch", service, { entity_id: ent2 });
+    } catch (e) {
+      this._showServiceError(e.message || "Regenschutz-Umschaltung fehlgeschlagen");
+    }
+  }
+
   async _setNumber(entityId, value) {
     try {
       await this.hass.callService("number", "set_value", {
@@ -727,6 +747,78 @@ class MammotionCard extends LitElement {
       this._serviceError = null;
       this.requestUpdate();
     }, 4000);
+  }
+
+  // --- Leaflet Map ---
+
+  async _loadLeaflet() {
+    if (window.L) return;
+    return new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+      script.onload = resolve;
+      document.head.appendChild(script);
+    });
+  }
+
+  async _initMap() {
+    if (this._leafletMap || !this._entities) return;
+    const container = this.renderRoot.querySelector("#mmc-map");
+    if (!container) return;
+
+    const lat = getNumericState(this.hass, this._entities.sensors.latitude);
+    const lng = getNumericState(this.hass, this._entities.sensors.longitude);
+    if (lat === null || lng === null) return;
+
+    await this._loadLeaflet();
+    if (!window.L || this._leafletMap) return;
+
+    this._leafletMap = L.map(container, { zoomControl: true }).setView([lat, lng], 19);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 21,
+      attribution: "&copy; OSM",
+    }).addTo(this._leafletMap);
+
+    const color = this._markerColor(this._getMowerState());
+    this._mapMarker = L.circleMarker([lat, lng], {
+      radius: 8,
+      color: color,
+      fillColor: color,
+      fillOpacity: 0.8,
+      weight: 2,
+    }).addTo(this._leafletMap);
+
+    setTimeout(() => this._leafletMap.invalidateSize(), 200);
+  }
+
+  _updateMapMarker() {
+    if (!this._leafletMap || !this._mapMarker) return;
+    const lat = getNumericState(this.hass, this._entities.sensors.latitude);
+    const lng = getNumericState(this.hass, this._entities.sensors.longitude);
+    if (lat === null || lng === null) return;
+
+    this._mapMarker.setLatLng([lat, lng]);
+    const color = this._markerColor(this._getMowerState());
+    this._mapMarker.setStyle({ color, fillColor: color });
+
+    if (this._getMowerState() === "mowing") {
+      this._leafletMap.panTo([lat, lng], { animate: true });
+    }
+  }
+
+  _markerColor(state) {
+    const colors = { mowing: "#4CAF50", docked: "#2196F3", paused: "#FF9800", returning: "#2196F3", error: "#F44336" };
+    return colors[state] || "#999";
+  }
+
+  async updated(changedProps) {
+    super.updated(changedProps);
+    if (this._isSectionOpen("map") && !this._leafletMap) {
+      await this._initMap();
+    }
+    if (this._leafletMap) {
+      this._updateMapMarker();
+    }
   }
 
   // --- Performance ---
@@ -772,9 +864,38 @@ class MammotionCard extends LitElement {
     return "mdi:wifi-strength-alert-outline";
   }
 
+  _taskAreaClass(state) {
+    const s = state.toUpperCase();
+    if (s === "MOWING") return "active";
+    if (s === "COMPLETED") return "completed";
+    if (s === "WAITING") return "waiting";
+    return "other";
+  }
+
+  _taskAreaLabel(state) {
+    const labels = {
+      MOWING: "Mäht",
+      WAITING: "Wartet",
+      COMPLETED: "Fertig",
+      NOT_STARTED: "Nicht gestartet",
+    };
+    return labels[state.toUpperCase()] || state;
+  }
+
+  _formatNonWorkHours(value) {
+    if (!value || value === "Not set") return "Keine Ruhezeit konfiguriert";
+    return value.replace(/(\d{1,2}:\d{2})(am|pm)/gi, (_, time, ampm) => {
+      const [h, m] = time.split(":");
+      let hour = parseInt(h, 10);
+      if (ampm.toLowerCase() === "pm" && hour !== 12) hour += 12;
+      if (ampm.toLowerCase() === "am" && hour === 12) hour = 0;
+      return `${String(hour).padStart(2, "0")}:${m}`;
+    });
+  }
+
   _countEntities() {
     if (!this._entities) return 0;
-    let count = 1; // lawn_mower
+    let count = 1;
     if (this._entities.camera) count++;
     if (this._entities.device_tracker) count++;
     if (this._entities.charging) count++;
@@ -1062,10 +1183,9 @@ class MammotionCard extends LitElement {
         background: var(--error-color, #f44336);
       }
 
-      /* Sections */
+      /* Accordion Sections */
       .section {
-        margin-bottom: var(--mmc-spacing);
-        padding-bottom: var(--mmc-spacing);
+        margin-bottom: 4px;
         border-bottom: 1px solid var(--divider-color, #e0e0e0);
       }
 
@@ -1073,24 +1193,52 @@ class MammotionCard extends LitElement {
         border-bottom: none;
       }
 
-      .section-title {
+      .section-header {
         display: flex;
         align-items: center;
         gap: 6px;
-        font-size: 14px;
-        font-weight: 500;
-        color: var(--primary-text-color);
-        margin-bottom: 8px;
+        padding: 10px 0;
+        cursor: pointer;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
       }
 
-      .section-title ha-icon {
+      .section-header ha-icon {
         --mdc-icon-size: 18px;
         color: var(--secondary-text-color);
       }
 
+      .section-title-text {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--primary-text-color);
+        flex: 1;
+      }
+
+      .chevron {
+        font-size: 14px;
+        color: var(--secondary-text-color);
+        transition: transform 0.3s ease;
+        flex-shrink: 0;
+      }
+
+      .chevron.open {
+        transform: rotate(90deg);
+      }
+
+      .accordion-content {
+        overflow: hidden;
+        max-height: 0;
+        transition: max-height 0.3s ease-out;
+      }
+
+      .accordion-content.open {
+        max-height: 2000px;
+        transition: max-height 0.5s ease-in;
+      }
+
       /* Sync Button */
       .sync-btn {
-        margin-left: auto;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1133,10 +1281,52 @@ class MammotionCard extends LitElement {
         to { transform: rotate(360deg); }
       }
 
+      /* Map */
+      .map-container {
+        height: 250px;
+        border-radius: var(--mmc-radius);
+        overflow: hidden;
+        margin-bottom: 4px;
+        z-index: 0;
+      }
+
+      .map-placeholder {
+        height: 120px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--secondary-text-color);
+        font-size: 13px;
+        background: var(--secondary-background-color, #f5f5f5);
+        border-radius: var(--mmc-radius);
+      }
+
+      .map-info {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        color: var(--secondary-text-color);
+        padding: 4px 0;
+      }
+
+      /* Camera */
+      .camera-container {
+        border-radius: var(--mmc-radius);
+        overflow: hidden;
+      }
+
+      .camera-image {
+        width: 100%;
+        display: block;
+        border-radius: var(--mmc-radius);
+      }
+
       /* Config Grid */
       .config-grid {
         display: grid;
         gap: 8px;
+        padding-bottom: 8px;
       }
 
       .slider-row,
@@ -1186,6 +1376,7 @@ class MammotionCard extends LitElement {
       .zone-list {
         display: grid;
         gap: 4px;
+        padding-bottom: 8px;
       }
 
       .zone-row,
@@ -1216,10 +1407,17 @@ class MammotionCard extends LitElement {
         margin-left: 4px;
       }
 
+      .empty-hint {
+        font-size: 13px;
+        color: var(--secondary-text-color);
+        padding: 8px 0;
+      }
+
       /* Device Toggles */
       .device-toggles {
         display: grid;
         gap: 4px;
+        padding-bottom: 8px;
       }
 
       .toggle-row span {
@@ -1329,6 +1527,7 @@ class MammotionCard extends LitElement {
         color: var(--secondary-text-color);
         opacity: 0.7;
         font-style: italic;
+        padding-bottom: 4px;
       }
 
       .schedule-hint ha-icon {
@@ -1346,7 +1545,6 @@ class MammotionCard extends LitElement {
 
       /* ===== Responsive: Mobile-first ===== */
 
-      /* Ensure touch targets everywhere */
       ha-switch {
         min-height: 44px;
         min-width: 44px;
@@ -1357,7 +1555,7 @@ class MammotionCard extends LitElement {
         min-height: 44px;
       }
 
-      /* Small cards (< 360px) — stack buttons vertically */
+      /* Small cards (< 360px) */
       @container mmc (max-width: 359px) {
         .button-row {
           flex-direction: column;
@@ -1395,9 +1593,13 @@ class MammotionCard extends LitElement {
           flex: 0 0 55px;
           font-size: 12px;
         }
+
+        .map-container {
+          height: 200px;
+        }
       }
 
-      /* Very narrow (< 300px) — stack slider labels */
+      /* Very narrow (< 300px) */
       @container mmc (max-width: 299px) {
         .slider-row,
         .select-row {
@@ -1419,7 +1621,7 @@ class MammotionCard extends LitElement {
         }
       }
 
-      /* Wider cards (> 500px) — can show more */
+      /* Wider cards (> 500px) */
       @container mmc (min-width: 500px) {
         .mower-name {
           font-size: 18px;
@@ -1431,6 +1633,10 @@ class MammotionCard extends LitElement {
 
         .config-grid {
           grid-template-columns: 1fr 1fr;
+        }
+
+        .map-container {
+          height: 300px;
         }
       }
     `;
