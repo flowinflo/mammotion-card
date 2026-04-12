@@ -402,12 +402,48 @@ class MammotionCard extends LitElement {
     `;
   }
 
+  _renderSelectAllZones() {
+    const areas = this._entities?.areas || [];
+    const availableAreas = areas.filter((eid) =>
+      this.hass.states[eid]?.state !== "unavailable"
+    );
+    if (availableAreas.length <= 1) return "";
+
+    const allOn = availableAreas.every((eid) => this.hass.states[eid]?.state === "on");
+
+    return html`
+      <div class="zone-row select-all">
+        <span class="zone-name" style="font-weight:500">Alle Bereiche</span>
+        <ha-switch
+          .checked=${allOn}
+          @change=${() => this._toggleAllZones(!allOn)}
+        ></ha-switch>
+      </div>
+      <div class="zone-divider"></div>
+    `;
+  }
+
+  async _toggleAllZones(turnOn) {
+    const areas = this._entities?.areas || [];
+    const service = turnOn ? "turn_on" : "turn_off";
+    try {
+      for (const eid of areas) {
+        if (this.hass.states[eid]?.state !== "unavailable") {
+          await this.hass.callService("switch", service, { entity_id: eid });
+        }
+      }
+    } catch (e) {
+      this._showServiceError(e.message || "Bereiche umschalten fehlgeschlagen");
+    }
+  }
+
   _renderZonesContent() {
     const areas = this._entities.areas;
     if (!areas || areas.length === 0) return html`<div class="empty-hint">Keine Bereiche gefunden</div>`;
 
     return html`
       <div class="zone-list">
+        ${this._renderSelectAllZones()}
         ${areas.map((eid) => {
           const stateObj = this.hass.states[eid];
           const isUnavailable = !stateObj || stateObj.state === "unavailable";
@@ -591,7 +627,7 @@ class MammotionCard extends LitElement {
         ? html`
             <div class="maint-error">
               <ha-icon icon="mdi:alert-circle" style="--mdc-icon-size:16px; color:var(--error-color, #f44336)"></ha-icon>
-              <span>Letzter Fehler: ${errorCode} - ${errorMessage || "Unbekannt"} (${this._formatRelativeDate(errorTime)})</span>
+              <span>Letzter Fehler: ${errorCode} - ${errorMessage && !errorMessage.toLowerCase().includes("error message not found") ? errorMessage : `Unbekannter Fehler (Code: ${errorCode})`} (${this._formatRelativeDate(errorTime)})</span>
             </div>
           `
         : html`
@@ -1483,17 +1519,30 @@ class MammotionCard extends LitElement {
       /* ===== Zones ===== */
       .zone-list {
         display: grid;
-        gap: 4px;
+        gap: 0;
         padding-bottom: 8px;
       }
 
-      .zone-row,
+      .zone-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 2px 0;
+        min-height: 38px;
+      }
+
       .toggle-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
         padding: 6px 0;
         min-height: 44px;
+      }
+
+      .zone-divider {
+        height: 1px;
+        background: var(--divider-color, #e0e0e0);
+        margin: 2px 0;
       }
 
       .zone-name {

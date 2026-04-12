@@ -269,8 +269,18 @@ const $=globalThis,w=e=>e,k=$.trustedTypes,S=k?k.createPolicy("lit-html",{create
               `:""}
         </div>
       </div>
-    `}_renderZonesContent(){const e=this._entities.areas;return e&&0!==e.length?D`
+    `}_renderSelectAllZones(){const e=(this._entities?.areas||[]).filter(e=>"unavailable"!==this.hass.states[e]?.state);if(e.length<=1)return"";const t=e.every(e=>"on"===this.hass.states[e]?.state);return D`
+      <div class="zone-row select-all">
+        <span class="zone-name" style="font-weight:500">Alle Bereiche</span>
+        <ha-switch
+          .checked=${t}
+          @change=${()=>this._toggleAllZones(!t)}
+        ></ha-switch>
+      </div>
+      <div class="zone-divider"></div>
+    `}async _toggleAllZones(e){const t=this._entities?.areas||[],s=e?"turn_on":"turn_off";try{for(const e of t)"unavailable"!==this.hass.states[e]?.state&&await this.hass.callService("switch",s,{entity_id:e})}catch(e){this._showServiceError(e.message||"Bereiche umschalten fehlgeschlagen")}}_renderZonesContent(){const e=this._entities.areas;return e&&0!==e.length?D`
       <div class="zone-list">
+        ${this._renderSelectAllZones()}
         ${e.map(e=>{const t=this.hass.states[e],s=!t||"unavailable"===t.state,i="on"===t?.state,n=t?.attributes?.friendly_name||"";let r;if(n&&n!==e)r=n.replace(/^[A-Za-z]+-[A-Z0-9]+\s+/,""),r===n&&(r=n.replace(/^.*?\s+(Bereich)/i,"$1"));else{const t=e.match(/bereich_(\w+)$/);r=t?`Bereich ${t[1].replace(/_/g,".")}`:"Bereich"}return D`
             <div class="zone-row ${s?"unavailable":""}">
               <span class="zone-name">
@@ -366,7 +376,7 @@ const $=globalThis,w=e=>e,k=$.trustedTypes,S=k?k.createPolicy("lit-html",{create
       ${h?D`
             <div class="maint-error">
               <ha-icon icon="mdi:alert-circle" style="--mdc-icon-size:16px; color:var(--error-color, #f44336)"></ha-icon>
-              <span>Letzter Fehler: ${a} - ${o||"Unbekannt"} (${this._formatRelativeDate(l)})</span>
+              <span>Letzter Fehler: ${a} - ${o&&!o.toLowerCase().includes("error message not found")?o:`Unbekannter Fehler (Code: ${a})`} (${this._formatRelativeDate(l)})</span>
             </div>
           `:D`
             <div class="maint-ok">
@@ -888,17 +898,30 @@ const $=globalThis,w=e=>e,k=$.trustedTypes,S=k?k.createPolicy("lit-html",{create
       /* ===== Zones ===== */
       .zone-list {
         display: grid;
-        gap: 4px;
+        gap: 0;
         padding-bottom: 8px;
       }
 
-      .zone-row,
+      .zone-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 2px 0;
+        min-height: 38px;
+      }
+
       .toggle-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
         padding: 6px 0;
         min-height: 44px;
+      }
+
+      .zone-divider {
+        height: 1px;
+        background: var(--divider-color, #e0e0e0);
+        margin: 2px 0;
       }
 
       .zone-name {
