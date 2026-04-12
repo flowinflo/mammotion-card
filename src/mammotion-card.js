@@ -200,10 +200,9 @@ class MammotionCard extends LitElement {
     }
 
     const state = this._getMowerState();
-    const name =
-      this._config.name ||
-      this.hass.states[this._config.entity]?.attributes?.friendly_name ||
-      "Mammotion";
+    const displayName = this._config.name || "Luba";
+    const entityFriendly = this.hass.states[this._config.entity]?.attributes?.friendly_name || "";
+    const deviceId = entityFriendly || this._config.entity.replace("lawn_mower.", "");
     const battery = getNumericState(this.hass, this._entities.sensors.battery);
     const isCharging = getStateValue(this.hass, this._entities.charging) === "on";
     const isExpert = this._config.mode === "expert";
@@ -232,8 +231,8 @@ class MammotionCard extends LitElement {
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
       <ha-card>
         ${modules.map !== false
-          ? this._renderMapHero(name, state, battery, isCharging)
-          : this._renderSimpleHeader(name, state, battery, isCharging)}
+          ? this._renderMapHero(displayName, deviceId, state, battery, isCharging)
+          : this._renderSimpleHeader(displayName, deviceId, state, battery, isCharging)}
 
         <div class="card-content">
           ${state === "error" && errorMsg
@@ -267,7 +266,7 @@ class MammotionCard extends LitElement {
 
   // --- Map Hero with Status Overlay ---
 
-  _renderMapHero(name, state, battery, isCharging) {
+  _renderMapHero(displayName, deviceId, state, battery, isCharging) {
     const satellites = getNumericState(this.hass, this._entities.sensors.satellites_robot);
     const rtk = getStateValue(this.hass, this._entities.sensors.rtk_position);
     const wifiRssi = getNumericState(this.hass, this._entities.sensors.wifi_rssi);
@@ -286,7 +285,7 @@ class MammotionCard extends LitElement {
         <div class="map-overlay">
           <div class="overlay-top">
             <div class="device-info">
-              <span class="device-name">${name}</span>
+              <span class="device-name">${displayName} <span class="device-id">(${deviceId})</span></span>
               <span class="status-badge ${state}">${this._stateLabel(state)}</span>
             </div>
             <div class="battery-ring-hero">
@@ -317,7 +316,7 @@ class MammotionCard extends LitElement {
     `;
   }
 
-  _renderSimpleHeader(name, state, battery, isCharging) {
+  _renderSimpleHeader(displayName, deviceId, state, battery, isCharging) {
     return html`
       <div class="simple-header">
         <ha-icon
@@ -326,7 +325,7 @@ class MammotionCard extends LitElement {
           style="color: ${this._stateColor(state)}; --mdc-icon-size: 36px"
         ></ha-icon>
         <div class="simple-header-info">
-          <span class="simple-header-name">${name}</span>
+          <span class="simple-header-name">${displayName} <span class="device-id" style="color:var(--secondary-text-color)">(${deviceId})</span></span>
           <span class="status-badge ${state}">${this._stateLabel(state)}</span>
         </div>
         <div class="battery-ring-hero" style="width:48px; height:48px">
@@ -454,9 +453,10 @@ class MammotionCard extends LitElement {
           if (rawName && rawName !== eid) {
             name = rawName.replace(/^[A-Za-z]+-[A-Z0-9]+\s+/, "");
             if (name === rawName) name = rawName.replace(/^.*?\s+(Bereich)/i, "$1");
+            name = name.replace(/^Bereich\s+/i, "");
           } else {
             const match = eid.match(/bereich_(\w+)$/);
-            name = match ? `Bereich ${match[1].replace(/_/g, ".")}` : "Bereich";
+            name = match ? match[1].replace(/_/g, ".") : "Bereich";
           }
 
           return html`
@@ -911,6 +911,12 @@ class MammotionCard extends LitElement {
 
     this._leafletMap = L.map(container, {
       zoomControl: false,
+      dragging: false,
+      touchZoom: false,
+      scrollWheelZoom: false,
+      doubleClickZoom: false,
+      boxZoom: false,
+      keyboard: false,
       attributionControl: false,
     }).setView([lat, lng], 19);
 
@@ -1139,7 +1145,7 @@ class MammotionCard extends LitElement {
       /* ===== Map Hero ===== */
       .map-hero {
         position: relative;
-        height: 280px;
+        height: 224px;
         overflow: hidden;
       }
 
@@ -1203,6 +1209,12 @@ class MammotionCard extends LitElement {
         font-weight: 500;
         color: white;
         text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+      }
+
+      .device-id {
+        font-size: 12px;
+        font-weight: 400;
+        opacity: 0.75;
       }
 
       .status-badge {
@@ -1795,7 +1807,7 @@ class MammotionCard extends LitElement {
       /* ===== Responsive ===== */
 
       @container mmc (max-width: 359px) {
-        .map-hero { height: 220px; }
+        .map-hero { height: 180px; }
 
         .button-row { flex-direction: column; }
 
@@ -1831,7 +1843,7 @@ class MammotionCard extends LitElement {
       }
 
       @container mmc (min-width: 500px) {
-        .map-hero { height: 320px; }
+        .map-hero { height: 260px; }
         .device-name { font-size: 20px; }
         .button-row { gap: 12px; }
         .config-grid { grid-template-columns: 1fr 1fr; }

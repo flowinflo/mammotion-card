@@ -133,12 +133,12 @@ const $=globalThis,w=e=>e,k=$.trustedTypes,S=k?k.createPolicy("lit-html",{create
           <ha-icon icon="mdi:alert-circle-outline"></ha-icon>
           Entity nicht gefunden: ${this._config.entity}
         </div>
-      </div></ha-card>`;if(!this._entities)return D`<ha-card><div class="card-content"><div class="loading">Lade...</div></div></ha-card>`;const e=this._getMowerState(),t=this._config.name||this.hass.states[this._config.entity]?.attributes?.friendly_name||"Mammotion",s=ue(this.hass,this._entities.sensors.battery),i="on"===pe(this.hass,this._entities.charging),n="expert"===this._config.mode,r=this._config.modules||{},a=pe(this.hass,this._entities.sensors.error_message),o=this._entities.buttons.sync_map?D`<button
+      </div></ha-card>`;if(!this._entities)return D`<ha-card><div class="card-content"><div class="loading">Lade...</div></div></ha-card>`;const e=this._getMowerState(),t=this._config.name||"Luba",s=this.hass.states[this._config.entity]?.attributes?.friendly_name||""||this._config.entity.replace("lawn_mower.",""),i=ue(this.hass,this._entities.sensors.battery),n="on"===pe(this.hass,this._entities.charging),r="expert"===this._config.mode,a=this._config.modules||{},o=pe(this.hass,this._entities.sensors.error_message),l=this._entities.buttons.sync_map?D`<button
           class="sync-btn ${this._syncingMap?"syncing":""}"
           @click=${e=>{e.stopPropagation(),this._handleSync("map")}}
           title="Karte synchronisieren"
           aria-label="Karte synchronisieren"
-        ><svg viewBox="0 0 24 24"><path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg></button>`:"",l=this._entities.buttons.sync_schedule?D`<button
+        ><svg viewBox="0 0 24 24"><path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg></button>`:"",c=this._entities.buttons.sync_schedule?D`<button
           class="sync-btn ${this._syncingSchedule?"syncing":""}"
           @click=${e=>{e.stopPropagation(),this._handleSync("schedule")}}
           title="Zeitplan synchronisieren"
@@ -146,20 +146,20 @@ const $=globalThis,w=e=>e,k=$.trustedTypes,S=k?k.createPolicy("lit-html",{create
         ><svg viewBox="0 0 24 24"><path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg></button>`:"";return D`
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
       <ha-card>
-        ${!1!==r.map?this._renderMapHero(t,e,s,i):this._renderSimpleHeader(t,e,s,i)}
+        ${!1!==a.map?this._renderMapHero(t,s,e,i,n):this._renderSimpleHeader(t,s,e,i,n)}
 
         <div class="card-content">
-          ${"error"===e&&a?D`<div class="error-msg-banner">
+          ${"error"===e&&o?D`<div class="error-msg-banner">
                 <ha-icon icon="mdi:alert-circle" style="--mdc-icon-size:18px"></ha-icon>
-                ${a}
+                ${o}
               </div>`:""}
 
           ${this._renderControls(e)}
 
-          ${!1!==r.zones?this._renderSection("zones","mdi:vector-square","Bereiche",this._renderZonesContent(),o):""}
-          ${!1!==r.settings?this._renderSection("settings","mdi:cog","Einstellungen",this._renderSettingsContent()):""}
-          ${!1!==r.schedule?this._renderSection("schedule","mdi:calendar-clock","Zeitplan",this._renderScheduleContent(n),l):""}
-          ${!1!==r.maintenance?this._renderSection("maintenance","mdi:wrench","Wartung",this._renderMaintenanceContent(n)):""}
+          ${!1!==a.zones?this._renderSection("zones","mdi:vector-square","Bereiche",this._renderZonesContent(),l):""}
+          ${!1!==a.settings?this._renderSection("settings","mdi:cog","Einstellungen",this._renderSettingsContent()):""}
+          ${!1!==a.schedule?this._renderSection("schedule","mdi:calendar-clock","Zeitplan",this._renderScheduleContent(r),c):""}
+          ${!1!==a.maintenance?this._renderSection("maintenance","mdi:wrench","Wartung",this._renderMaintenanceContent(r)):""}
 
           ${this._serviceError?D`<div class="service-error">
                 <ha-icon icon="mdi:alert-outline"></ha-icon> ${this._serviceError}
@@ -171,17 +171,17 @@ const $=globalThis,w=e=>e,k=$.trustedTypes,S=k?k.createPolicy("lit-html",{create
           </div>
         </div>
       </ha-card>
-    `}_renderMapHero(e,t,s,i){const n=ue(this.hass,this._entities.sensors.satellites_robot),r=pe(this.hass,this._entities.sensors.rtk_position),a=ue(this.hass,this._entities.sensors.wifi_rssi),o=ue(this.hass,this._entities.sensors.latitude),l=ue(this.hass,this._entities.sensors.longitude);return D`
+    `}_renderMapHero(e,t,s,i,n){const r=ue(this.hass,this._entities.sensors.satellites_robot),a=pe(this.hass,this._entities.sensors.rtk_position),o=ue(this.hass,this._entities.sensors.wifi_rssi),l=ue(this.hass,this._entities.sensors.latitude),c=ue(this.hass,this._entities.sensors.longitude);return D`
       <div class="map-hero">
-        ${null!==o&&null!==l?D`<div id="mmc-map" class="map-container"></div>`:D`<div class="map-hero-placeholder">
+        ${null!==l&&null!==c?D`<div id="mmc-map" class="map-container"></div>`:D`<div class="map-hero-placeholder">
               <ha-icon icon="mdi:satellite-variant"></ha-icon>
               <span>GPS-Position wird gesucht...</span>
             </div>`}
         <div class="map-overlay">
           <div class="overlay-top">
             <div class="device-info">
-              <span class="device-name">${e}</span>
-              <span class="status-badge ${t}">${this._stateLabel(t)}</span>
+              <span class="device-name">${e} <span class="device-id">(${t})</span></span>
+              <span class="status-badge ${s}">${this._stateLabel(s)}</span>
             </div>
             <div class="battery-ring-hero">
               <svg viewBox="0 0 36 36">
@@ -192,41 +192,41 @@ const $=globalThis,w=e=>e,k=$.trustedTypes,S=k?k.createPolicy("lit-html",{create
                 <path
                   class="battery-fill-hero"
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  style="stroke-dasharray: ${s||0}, 100; stroke: ${this._batteryColor(s)}"
+                  style="stroke-dasharray: ${i||0}, 100; stroke: ${this._batteryColor(i)}"
                 />
               </svg>
               <span class="battery-text-hero">
-                ${null!==s?`${Math.round(s)}%`:"?"}
+                ${null!==i?`${Math.round(i)}%`:"?"}
               </span>
-              ${i?D`<ha-icon icon="mdi:lightning-bolt" class="charging-icon-hero"></ha-icon>`:""}
+              ${n?D`<ha-icon icon="mdi:lightning-bolt" class="charging-icon-hero"></ha-icon>`:""}
             </div>
           </div>
           <div class="overlay-bottom">
-            ${null!==n?D`<span class="info-pill">\u{1F6F0} ${n} Sat</span>`:""}
-            ${null!==a?D`<span class="info-pill">\u{1F4E1} ${a} dBm</span>`:""}
-            ${r&&"unknown"!==r&&"unavailable"!==r?D`<span class="info-pill">${r}</span>`:""}
+            ${null!==r?D`<span class="info-pill">\u{1F6F0} ${r} Sat</span>`:""}
+            ${null!==o?D`<span class="info-pill">\u{1F4E1} ${o} dBm</span>`:""}
+            ${a&&"unknown"!==a&&"unavailable"!==a?D`<span class="info-pill">${a}</span>`:""}
           </div>
         </div>
       </div>
-    `}_renderSimpleHeader(e,t,s,i){return D`
+    `}_renderSimpleHeader(e,t,s,i,n){return D`
       <div class="simple-header">
         <ha-icon
-          icon=${this._stateIcon(t)}
-          class="${"mowing"===t?"mowing-animation":""}"
-          style="color: ${this._stateColor(t)}; --mdc-icon-size: 36px"
+          icon=${this._stateIcon(s)}
+          class="${"mowing"===s?"mowing-animation":""}"
+          style="color: ${this._stateColor(s)}; --mdc-icon-size: 36px"
         ></ha-icon>
         <div class="simple-header-info">
-          <span class="simple-header-name">${e}</span>
-          <span class="status-badge ${t}">${this._stateLabel(t)}</span>
+          <span class="simple-header-name">${e} <span class="device-id" style="color:var(--secondary-text-color)">(${t})</span></span>
+          <span class="status-badge ${s}">${this._stateLabel(s)}</span>
         </div>
         <div class="battery-ring-hero" style="width:48px; height:48px">
           <svg viewBox="0 0 36 36">
             <path class="battery-bg-hero" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
             <path class="battery-fill-hero" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-              style="stroke-dasharray: ${s||0}, 100; stroke: ${this._batteryColor(s)}" />
+              style="stroke-dasharray: ${i||0}, 100; stroke: ${this._batteryColor(i)}" />
           </svg>
-          <span class="battery-text-hero" style="color: var(--primary-text-color)">${null!==s?`${Math.round(s)}%`:"?"}</span>
-          ${i?D`<ha-icon icon="mdi:lightning-bolt" class="charging-icon-hero"></ha-icon>`:""}
+          <span class="battery-text-hero" style="color: var(--primary-text-color)">${null!==i?`${Math.round(i)}%`:"?"}</span>
+          ${n?D`<ha-icon icon="mdi:lightning-bolt" class="charging-icon-hero"></ha-icon>`:""}
         </div>
       </div>
     `}_renderControls(e){const t=ue(this.hass,this._entities.sensors.progress),s=ue(this.hass,this._entities.sensors.elapsed_time),i=ue(this.hass,this._entities.sensors.left_time);return D`
@@ -281,7 +281,7 @@ const $=globalThis,w=e=>e,k=$.trustedTypes,S=k?k.createPolicy("lit-html",{create
     `}async _toggleAllZones(e){const t=this._entities?.areas||[],s=e?"turn_on":"turn_off";try{for(const e of t)"unavailable"!==this.hass.states[e]?.state&&await this.hass.callService("switch",s,{entity_id:e})}catch(e){this._showServiceError(e.message||"Bereiche umschalten fehlgeschlagen")}}_renderZonesContent(){const e=this._entities.areas;return e&&0!==e.length?D`
       <div class="zone-list">
         ${this._renderSelectAllZones()}
-        ${e.map(e=>{const t=this.hass.states[e],s=!t||"unavailable"===t.state,i="on"===t?.state,n=t?.attributes?.friendly_name||"";let r;if(n&&n!==e)r=n.replace(/^[A-Za-z]+-[A-Z0-9]+\s+/,""),r===n&&(r=n.replace(/^.*?\s+(Bereich)/i,"$1"));else{const t=e.match(/bereich_(\w+)$/);r=t?`Bereich ${t[1].replace(/_/g,".")}`:"Bereich"}return D`
+        ${e.map(e=>{const t=this.hass.states[e],s=!t||"unavailable"===t.state,i="on"===t?.state,n=t?.attributes?.friendly_name||"";let r;if(n&&n!==e)r=n.replace(/^[A-Za-z]+-[A-Z0-9]+\s+/,""),r===n&&(r=n.replace(/^.*?\s+(Bereich)/i,"$1")),r=r.replace(/^Bereich\s+/i,"");else{const t=e.match(/bereich_(\w+)$/);r=t?t[1].replace(/_/g,"."):"Bereich"}return D`
             <div class="zone-row ${s?"unavailable":""}">
               <span class="zone-name">
                 ${r}
@@ -444,7 +444,7 @@ const $=globalThis,w=e=>e,k=$.trustedTypes,S=k?k.createPolicy("lit-html",{create
         <span>${t}</span>
         <ha-switch .checked=${s} @change=${()=>this._toggleSwitch(e)}></ha-switch>
       </div>
-    `}async _callService(e,t){try{await this.hass.callService(e,t,{entity_id:this._config.entity})}catch(e){this._showServiceError(e.message||"Service-Aufruf fehlgeschlagen")}}async _pressButton(e){if(e)try{await this.hass.callService("button","press",{entity_id:e})}catch(e){this._showServiceError(e.message||"Button-Aufruf fehlgeschlagen")}}_handleSync(e){const t="map"===e?this._entities.buttons.sync_map:this._entities.buttons.sync_schedule;t&&(this._pressButton(t),"map"===e?this._syncingMap=!0:this._syncingSchedule=!0,this.requestUpdate(),setTimeout(()=>{"map"===e?this._syncingMap=!1:this._syncingSchedule=!1,this.requestUpdate()},3e3))}async _toggleSwitch(e){try{await this.hass.callService("switch","toggle",{entity_id:e})}catch(e){this._showServiceError(e.message||"Switch-Aufruf fehlgeschlagen")}}async _toggleRainProtection(e){const t=e?"turn_on":"turn_off",s=this._entities?.switches?.rain_mowing,i=this._entities?.switches?.rain_robot;try{s&&await this.hass.callService("switch",t,{entity_id:s}),i&&await this.hass.callService("switch",t,{entity_id:i})}catch(e){this._showServiceError(e.message||"Regenschutz-Umschaltung fehlgeschlagen")}}async _setNumber(e,t){try{await this.hass.callService("number","set_value",{entity_id:e,value:t})}catch(e){this._showServiceError(e.message||"Wert konnte nicht gesetzt werden")}}async _setSelect(e,t){try{await this.hass.callService("select","select_option",{entity_id:e,option:t})}catch(e){this._showServiceError(e.message||"Auswahl fehlgeschlagen")}}async _resetBladeTime(){if(window.confirm("Klingenzeit wirklich zurücksetzen?"))try{await this.hass.callService("mammotion","reset_blade_time",{entity_id:this._config.entity})}catch(e){this._showServiceError(e.message||"Klingenzeit zurücksetzen fehlgeschlagen")}}async _setBladeWarningTime(){const e=parseFloat(this._bladeWarnInput);if(isNaN(e)||e<=0)this._showServiceError("Bitte gültigen Stundenwert eingeben");else try{await this.hass.callService("mammotion","set_blade_warning_time",{entity_id:this._config.entity,hours:e})}catch(e){this._showServiceError(e.message||"Warnzeit setzen fehlgeschlagen")}}_showServiceError(e){this._serviceError=e,this.requestUpdate(),setTimeout(()=>{this._serviceError=null,this.requestUpdate()},4e3)}async _loadLeaflet(){if(!window.L)return new Promise(e=>{const t=document.createElement("script");t.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",t.onload=e,document.head.appendChild(t)})}async _initMap(){if(this._leafletMap||!this._entities)return;const e=this.renderRoot.querySelector("#mmc-map");if(!e)return;const t=ue(this.hass,this._entities.sensors.latitude),s=ue(this.hass,this._entities.sensors.longitude);if(null===t||null===s)return;if(await this._loadLeaflet(),!window.L||this._leafletMap)return;this._leafletMap=L.map(e,{zoomControl:!1,attributionControl:!1}).setView([t,s],19),L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:21}).addTo(this._leafletMap);const i=this._markerColor(this._getMowerState());this._mapMarker=L.circleMarker([t,s],{radius:8,color:"#fff",fillColor:i,fillOpacity:.9,weight:2}).addTo(this._leafletMap),setTimeout(()=>this._leafletMap.invalidateSize(),200)}_updateMapMarker(){if(!this._leafletMap||!this._mapMarker)return;const e=ue(this.hass,this._entities.sensors.latitude),t=ue(this.hass,this._entities.sensors.longitude);if(null===e||null===t)return;this._mapMarker.setLatLng([e,t]);const s=this._markerColor(this._getMowerState());this._mapMarker.setStyle({fillColor:s}),"mowing"===this._getMowerState()&&this._leafletMap.panTo([e,t],{animate:!0})}_markerColor(e){return{mowing:"#4CAF50",docked:"#2196F3",paused:"#FF9800",returning:"#2196F3",error:"#F44336"}[e]||"#999"}async updated(e){super.updated(e),this._leafletMap||!1===this._config?.modules?.map||await this._initMap(),this._leafletMap&&this._updateMapMarker()}shouldUpdate(e){if(!e.has("hass"))return!0;const t=e.get("hass");if(!t||!this._entities)return!0;return this._getAllEntityIds().some(e=>t.states[e]!==this.hass.states[e])}_getAllEntityIds(){const e=this._entities;if(!e)return[];const t=[e.lawn_mower];e.device_tracker&&t.push(e.device_tracker),e.charging&&t.push(e.charging);for(const s of["sensors","buttons","selects","numbers","switches"])e[s]&&t.push(...Object.values(e[s]));return e.areas&&t.push(...e.areas),e.tasks&&t.push(...e.tasks),e.task_areas&&t.push(...e.task_areas),t}_formatMinutes(e){if(null===e)return"";const t=Math.floor(e/60),s=Math.round(e%60);return t>0?`${t}h ${s}m`:`${s}m`}_signalIcon(e){return e>-50?"mdi:wifi-strength-4":e>-60?"mdi:wifi-strength-3":e>-70?"mdi:wifi-strength-2":e>-80?"mdi:wifi-strength-1":"mdi:wifi-strength-alert-outline"}_taskAreaClass(e){const t=e.toUpperCase();return"MOWING"===t?"active":"COMPLETED"===t?"completed":"WAITING"===t?"waiting":"other"}_taskAreaLabel(e){return{MOWING:"Mäht",WAITING:"Wartet",COMPLETED:"Fertig",NOT_STARTED:"Nicht gestartet"}[e.toUpperCase()]||e}_formatNonWorkHours(e){return e&&"Not set"!==e?e.replace(/(\d{1,2}:\d{2})(am|pm)/gi,(e,t,s)=>{const[i,n]=t.split(":");let r=parseInt(i,10);return"pm"===s.toLowerCase()&&12!==r&&(r+=12),"am"===s.toLowerCase()&&12===r&&(r=0),`${String(r).padStart(2,"0")}:${n}`}):"Keine Ruhezeit konfiguriert"}_formatRelativeDate(e){if(!e||"unknown"===e||"unavailable"===e)return"Unbekannt";try{const t=new Date(e);if(isNaN(t.getTime()))return e;const s=new Date-t,i=Math.floor(s/864e5);return 0===i?"Heute":1===i?"Gestern":i<7?`vor ${i} Tagen`:i<30?`vor ${Math.floor(i/7)} Wochen`:`${String(t.getDate()).padStart(2,"0")}.${String(t.getMonth()+1).padStart(2,"0")}.${t.getFullYear()} ${String(t.getHours()).padStart(2,"0")}:${String(t.getMinutes()).padStart(2,"0")}`}catch{return e}}_countEntities(){if(!this._entities)return 0;let e=1;this._entities.device_tracker&&e++,this._entities.charging&&e++;for(const t of["sensors","buttons","selects","numbers","switches"])e+=Object.keys(this._entities[t]||{}).length;return e+=(this._entities.areas||[]).length,e+=(this._entities.tasks||[]).length,e+=(this._entities.task_areas||[]).length,e}static get styles(){return r`
+    `}async _callService(e,t){try{await this.hass.callService(e,t,{entity_id:this._config.entity})}catch(e){this._showServiceError(e.message||"Service-Aufruf fehlgeschlagen")}}async _pressButton(e){if(e)try{await this.hass.callService("button","press",{entity_id:e})}catch(e){this._showServiceError(e.message||"Button-Aufruf fehlgeschlagen")}}_handleSync(e){const t="map"===e?this._entities.buttons.sync_map:this._entities.buttons.sync_schedule;t&&(this._pressButton(t),"map"===e?this._syncingMap=!0:this._syncingSchedule=!0,this.requestUpdate(),setTimeout(()=>{"map"===e?this._syncingMap=!1:this._syncingSchedule=!1,this.requestUpdate()},3e3))}async _toggleSwitch(e){try{await this.hass.callService("switch","toggle",{entity_id:e})}catch(e){this._showServiceError(e.message||"Switch-Aufruf fehlgeschlagen")}}async _toggleRainProtection(e){const t=e?"turn_on":"turn_off",s=this._entities?.switches?.rain_mowing,i=this._entities?.switches?.rain_robot;try{s&&await this.hass.callService("switch",t,{entity_id:s}),i&&await this.hass.callService("switch",t,{entity_id:i})}catch(e){this._showServiceError(e.message||"Regenschutz-Umschaltung fehlgeschlagen")}}async _setNumber(e,t){try{await this.hass.callService("number","set_value",{entity_id:e,value:t})}catch(e){this._showServiceError(e.message||"Wert konnte nicht gesetzt werden")}}async _setSelect(e,t){try{await this.hass.callService("select","select_option",{entity_id:e,option:t})}catch(e){this._showServiceError(e.message||"Auswahl fehlgeschlagen")}}async _resetBladeTime(){if(window.confirm("Klingenzeit wirklich zurücksetzen?"))try{await this.hass.callService("mammotion","reset_blade_time",{entity_id:this._config.entity})}catch(e){this._showServiceError(e.message||"Klingenzeit zurücksetzen fehlgeschlagen")}}async _setBladeWarningTime(){const e=parseFloat(this._bladeWarnInput);if(isNaN(e)||e<=0)this._showServiceError("Bitte gültigen Stundenwert eingeben");else try{await this.hass.callService("mammotion","set_blade_warning_time",{entity_id:this._config.entity,hours:e})}catch(e){this._showServiceError(e.message||"Warnzeit setzen fehlgeschlagen")}}_showServiceError(e){this._serviceError=e,this.requestUpdate(),setTimeout(()=>{this._serviceError=null,this.requestUpdate()},4e3)}async _loadLeaflet(){if(!window.L)return new Promise(e=>{const t=document.createElement("script");t.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",t.onload=e,document.head.appendChild(t)})}async _initMap(){if(this._leafletMap||!this._entities)return;const e=this.renderRoot.querySelector("#mmc-map");if(!e)return;const t=ue(this.hass,this._entities.sensors.latitude),s=ue(this.hass,this._entities.sensors.longitude);if(null===t||null===s)return;if(await this._loadLeaflet(),!window.L||this._leafletMap)return;this._leafletMap=L.map(e,{zoomControl:!1,dragging:!1,touchZoom:!1,scrollWheelZoom:!1,doubleClickZoom:!1,boxZoom:!1,keyboard:!1,attributionControl:!1}).setView([t,s],19),L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:21}).addTo(this._leafletMap);const i=this._markerColor(this._getMowerState());this._mapMarker=L.circleMarker([t,s],{radius:8,color:"#fff",fillColor:i,fillOpacity:.9,weight:2}).addTo(this._leafletMap),setTimeout(()=>this._leafletMap.invalidateSize(),200)}_updateMapMarker(){if(!this._leafletMap||!this._mapMarker)return;const e=ue(this.hass,this._entities.sensors.latitude),t=ue(this.hass,this._entities.sensors.longitude);if(null===e||null===t)return;this._mapMarker.setLatLng([e,t]);const s=this._markerColor(this._getMowerState());this._mapMarker.setStyle({fillColor:s}),"mowing"===this._getMowerState()&&this._leafletMap.panTo([e,t],{animate:!0})}_markerColor(e){return{mowing:"#4CAF50",docked:"#2196F3",paused:"#FF9800",returning:"#2196F3",error:"#F44336"}[e]||"#999"}async updated(e){super.updated(e),this._leafletMap||!1===this._config?.modules?.map||await this._initMap(),this._leafletMap&&this._updateMapMarker()}shouldUpdate(e){if(!e.has("hass"))return!0;const t=e.get("hass");if(!t||!this._entities)return!0;return this._getAllEntityIds().some(e=>t.states[e]!==this.hass.states[e])}_getAllEntityIds(){const e=this._entities;if(!e)return[];const t=[e.lawn_mower];e.device_tracker&&t.push(e.device_tracker),e.charging&&t.push(e.charging);for(const s of["sensors","buttons","selects","numbers","switches"])e[s]&&t.push(...Object.values(e[s]));return e.areas&&t.push(...e.areas),e.tasks&&t.push(...e.tasks),e.task_areas&&t.push(...e.task_areas),t}_formatMinutes(e){if(null===e)return"";const t=Math.floor(e/60),s=Math.round(e%60);return t>0?`${t}h ${s}m`:`${s}m`}_signalIcon(e){return e>-50?"mdi:wifi-strength-4":e>-60?"mdi:wifi-strength-3":e>-70?"mdi:wifi-strength-2":e>-80?"mdi:wifi-strength-1":"mdi:wifi-strength-alert-outline"}_taskAreaClass(e){const t=e.toUpperCase();return"MOWING"===t?"active":"COMPLETED"===t?"completed":"WAITING"===t?"waiting":"other"}_taskAreaLabel(e){return{MOWING:"Mäht",WAITING:"Wartet",COMPLETED:"Fertig",NOT_STARTED:"Nicht gestartet"}[e.toUpperCase()]||e}_formatNonWorkHours(e){return e&&"Not set"!==e?e.replace(/(\d{1,2}:\d{2})(am|pm)/gi,(e,t,s)=>{const[i,n]=t.split(":");let r=parseInt(i,10);return"pm"===s.toLowerCase()&&12!==r&&(r+=12),"am"===s.toLowerCase()&&12===r&&(r=0),`${String(r).padStart(2,"0")}:${n}`}):"Keine Ruhezeit konfiguriert"}_formatRelativeDate(e){if(!e||"unknown"===e||"unavailable"===e)return"Unbekannt";try{const t=new Date(e);if(isNaN(t.getTime()))return e;const s=new Date-t,i=Math.floor(s/864e5);return 0===i?"Heute":1===i?"Gestern":i<7?`vor ${i} Tagen`:i<30?`vor ${Math.floor(i/7)} Wochen`:`${String(t.getDate()).padStart(2,"0")}.${String(t.getMonth()+1).padStart(2,"0")}.${t.getFullYear()} ${String(t.getHours()).padStart(2,"0")}:${String(t.getMinutes()).padStart(2,"0")}`}catch{return e}}_countEntities(){if(!this._entities)return 0;let e=1;this._entities.device_tracker&&e++,this._entities.charging&&e++;for(const t of["sensors","buttons","selects","numbers","switches"])e+=Object.keys(this._entities[t]||{}).length;return e+=(this._entities.areas||[]).length,e+=(this._entities.tasks||[]).length,e+=(this._entities.task_areas||[]).length,e}static get styles(){return r`
       :host {
         --mmc-spacing: 12px;
         --mmc-radius: 12px;
@@ -518,7 +518,7 @@ const $=globalThis,w=e=>e,k=$.trustedTypes,S=k?k.createPolicy("lit-html",{create
       /* ===== Map Hero ===== */
       .map-hero {
         position: relative;
-        height: 280px;
+        height: 224px;
         overflow: hidden;
       }
 
@@ -582,6 +582,12 @@ const $=globalThis,w=e=>e,k=$.trustedTypes,S=k?k.createPolicy("lit-html",{create
         font-weight: 500;
         color: white;
         text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+      }
+
+      .device-id {
+        font-size: 12px;
+        font-weight: 400;
+        opacity: 0.75;
       }
 
       .status-badge {
@@ -1174,7 +1180,7 @@ const $=globalThis,w=e=>e,k=$.trustedTypes,S=k?k.createPolicy("lit-html",{create
       /* ===== Responsive ===== */
 
       @container mmc (max-width: 359px) {
-        .map-hero { height: 220px; }
+        .map-hero { height: 180px; }
 
         .button-row { flex-direction: column; }
 
@@ -1210,7 +1216,7 @@ const $=globalThis,w=e=>e,k=$.trustedTypes,S=k?k.createPolicy("lit-html",{create
       }
 
       @container mmc (min-width: 500px) {
-        .map-hero { height: 320px; }
+        .map-hero { height: 260px; }
         .device-name { font-size: 20px; }
         .button-row { gap: 12px; }
         .config-grid { grid-template-columns: 1fr 1fr; }
