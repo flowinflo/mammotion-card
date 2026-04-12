@@ -1,21 +1,19 @@
 import { LitElement, html, css } from "lit";
 
 const MODULES_DEFAULT = {
-  status: true,
-  controls: true,
-  map_and_zones: true,
-  camera: true,
+  map: true,
+  zones: true,
   settings: true,
   schedule: true,
+  maintenance: true,
 };
 
 const MODULE_LABELS = {
-  status: "Status",
-  controls: "Steuerung",
-  map_and_zones: "Karte & Bereiche",
-  camera: "Kamera",
+  map: "Karte",
+  zones: "Bereiche",
   settings: "Einstellungen",
   schedule: "Zeitplan",
+  maintenance: "Wartung",
 };
 
 export class MammotionCardEditor extends LitElement {

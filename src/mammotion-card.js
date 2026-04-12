@@ -2,7 +2,8 @@ import { LitElement, html, css } from "lit";
 import { discoverEntities, getStateValue, getNumericState, translateOption } from "./entity-discovery.js";
 import "./editor.js";
 
-const CARD_VERSION = "0.7.0";
+// Camera module disabled - WebRTC stream requires active mowing session
+const CARD_VERSION = "0.8.0";
 
 class MammotionCard extends LitElement {
   static get properties() {
@@ -14,6 +15,7 @@ class MammotionCard extends LitElement {
       _syncingSchedule: { state: true },
       _serviceError: { state: true },
       _openSections: { state: true },
+      _bladeWarnInput: { state: true },
     };
   }
 
@@ -29,12 +31,11 @@ class MammotionCard extends LitElement {
       entity: lawnMower || "",
       mode: "family",
       modules: {
-        status: true,
-        controls: true,
-        map_and_zones: true,
-        camera: true,
+        map: true,
+        zones: true,
         settings: true,
         schedule: true,
+        maintenance: true,
       },
     };
   }
@@ -44,24 +45,23 @@ class MammotionCard extends LitElement {
       throw new Error("Please define a lawn_mower entity");
     }
 
-    // Default modules (new combined keys)
     let modules = {
-      status: true,
-      controls: true,
-      map_and_zones: true,
-      camera: true,
+      map: true,
+      zones: true,
       settings: true,
       schedule: true,
+      maintenance: true,
     };
 
     if (config.modules) {
-      modules = { ...modules, ...config.modules };
-      // Backward compat: map old keys → new combined keys
-      if ("map" in config.modules || "zones" in config.modules) {
-        modules.map_and_zones = config.modules.map !== false || config.modules.zones !== false;
-      }
-      if ("mowing_config" in config.modules || "device" in config.modules) {
-        modules.settings = config.modules.mowing_config !== false || config.modules.device !== false;
+      const cm = config.modules;
+      modules = { ...modules, ...cm };
+      // Backward compat: map_and_zones → map + zones
+      if ("map_and_zones" in cm && !("map" in cm)) modules.map = cm.map_and_zones;
+      if ("map_and_zones" in cm && !("zones" in cm)) modules.zones = cm.map_and_zones;
+      // Backward compat: mowing_config/device → settings
+      if (("mowing_config" in cm || "device" in cm) && !("settings" in cm)) {
+        modules.settings = cm.mowing_config !== false || cm.device !== false;
       }
     }
 
@@ -71,10 +71,11 @@ class MammotionCard extends LitElement {
       modules,
     };
     this._entities = null;
+    this._bladeWarnInput = null;
 
     const isExpert = this._config.mode === "expert";
     this._openSections = new Set(
-      isExpert ? ["map_and_zones", "settings"] : ["map_and_zones"]
+      isExpert ? ["zones", "settings"] : ["zones"]
     );
   }
 
@@ -94,7 +95,7 @@ class MammotionCard extends LitElement {
   }
 
   getCardSize() {
-    return this._config?.mode === "expert" ? 8 : 4;
+    return this._config?.mode === "expert" ? 8 : 5;
   }
 
   // --- State helpers ---
@@ -140,9 +141,9 @@ class MammotionCard extends LitElement {
 
   _batteryColor(level) {
     if (level === null) return "var(--secondary-text-color)";
-    if (level > 50) return "var(--state-active-color, #4caf50)";
-    if (level > 20) return "var(--warning-color, #ff9800)";
-    return "var(--error-color, #f44336)";
+    if (level > 50) return "#4caf50";
+    if (level > 20) return "#ff9800";
+    return "#f44336";
   }
 
   // --- Accordion ---
@@ -153,9 +154,6 @@ class MammotionCard extends LitElement {
       this._openSections.delete(section);
     } else {
       this._openSections.add(section);
-    }
-    if (section === "map_and_zones" && this._openSections.has("map_and_zones") && this._leafletMap) {
-      setTimeout(() => this._leafletMap.invalidateSize(), 350);
     }
     this.requestUpdate();
   }
@@ -210,6 +208,7 @@ class MammotionCard extends LitElement {
     const isCharging = getStateValue(this.hass, this._entities.charging) === "on";
     const isExpert = this._config.mode === "expert";
     const modules = this._config.modules || {};
+    const errorMsg = getStateValue(this.hass, this._entities.sensors.error_message);
 
     const syncMapBtn = this._entities.buttons.sync_map
       ? html`<button
@@ -232,13 +231,24 @@ class MammotionCard extends LitElement {
     return html`
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
       <ha-card>
+        ${modules.map !== false
+          ? this._renderMapHero(name, state, battery, isCharging)
+          : this._renderSimpleHeader(name, state, battery, isCharging)}
+
         <div class="card-content">
-          ${modules.status !== false ? this._renderStatus(name, state, battery, isCharging, isExpert) : ""}
-          ${modules.controls !== false ? this._renderControls(state) : ""}
-          ${modules.map_and_zones !== false ? this._renderSection("map_and_zones", "mdi:map-marker-radius", "Karte & Bereiche", this._renderMapAndZonesContent(state), syncMapBtn) : ""}
-          ${modules.camera !== false && this._entities.camera ? this._renderSection("camera", "mdi:camera", "Kamera", this._renderCameraContent()) : ""}
+          ${state === "error" && errorMsg
+            ? html`<div class="error-msg-banner">
+                <ha-icon icon="mdi:alert-circle" style="--mdc-icon-size:18px"></ha-icon>
+                ${errorMsg}
+              </div>`
+            : ""}
+
+          ${this._renderControls(state)}
+
+          ${modules.zones !== false ? this._renderSection("zones", "mdi:vector-square", "Bereiche", this._renderZonesContent(), syncMapBtn) : ""}
           ${modules.settings !== false ? this._renderSection("settings", "mdi:cog", "Einstellungen", this._renderSettingsContent()) : ""}
           ${modules.schedule !== false ? this._renderSection("schedule", "mdi:calendar-clock", "Zeitplan", this._renderScheduleContent(isExpert), syncScheduleBtn) : ""}
+          ${modules.maintenance !== false ? this._renderSection("maintenance", "mdi:wrench", "Wartung", this._renderMaintenanceContent(isExpert)) : ""}
 
           ${this._serviceError
             ? html`<div class="service-error">
@@ -255,80 +265,84 @@ class MammotionCard extends LitElement {
     `;
   }
 
-  // --- Module renderers ---
+  // --- Map Hero with Status Overlay ---
 
-  _renderStatus(name, state, battery, isCharging, isExpert) {
-    const progress = getNumericState(this.hass, this._entities.sensors.progress);
-    const errorMsg = getStateValue(this.hass, this._entities.sensors.error_message);
-    const wifiRssi = getNumericState(this.hass, this._entities.sensors.wifi_rssi);
+  _renderMapHero(name, state, battery, isCharging) {
     const satellites = getNumericState(this.hass, this._entities.sensors.satellites_robot);
     const rtk = getStateValue(this.hass, this._entities.sensors.rtk_position);
+    const wifiRssi = getNumericState(this.hass, this._entities.sensors.wifi_rssi);
+    const lat = getNumericState(this.hass, this._entities.sensors.latitude);
+    const lng = getNumericState(this.hass, this._entities.sensors.longitude);
+    const hasGps = lat !== null && lng !== null;
 
     return html`
-      <div class="status-header">
-        <div class="status-icon-wrap">
-          <ha-icon
-            icon=${this._stateIcon(state)}
-            class="status-icon ${state === "mowing" ? "mowing-animation" : ""}"
-            style="color: ${this._stateColor(state)}"
-          ></ha-icon>
-        </div>
-
-        <div class="status-info">
-          <div class="mower-name">${name}</div>
-          <div class="state-badge" style="background: ${this._stateColor(state)}">
-            ${this._stateLabel(state)}
+      <div class="map-hero">
+        ${hasGps
+          ? html`<div id="mmc-map" class="map-container"></div>`
+          : html`<div class="map-hero-placeholder">
+              <ha-icon icon="mdi:satellite-variant"></ha-icon>
+              <span>GPS-Position wird gesucht...</span>
+            </div>`}
+        <div class="map-overlay">
+          <div class="overlay-top">
+            <div class="device-info">
+              <span class="device-name">${name}</span>
+              <span class="status-badge ${state}">${this._stateLabel(state)}</span>
+            </div>
+            <div class="battery-ring-hero">
+              <svg viewBox="0 0 36 36">
+                <path
+                  class="battery-bg-hero"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+                <path
+                  class="battery-fill-hero"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  style="stroke-dasharray: ${battery || 0}, 100; stroke: ${this._batteryColor(battery)}"
+                />
+              </svg>
+              <span class="battery-text-hero">
+                ${battery !== null ? `${Math.round(battery)}%` : "?"}
+              </span>
+              ${isCharging ? html`<ha-icon icon="mdi:lightning-bolt" class="charging-icon-hero"></ha-icon>` : ""}
+            </div>
           </div>
-          ${state === "error" && errorMsg
-            ? html`<div class="error-msg">${errorMsg}</div>`
-            : ""}
-        </div>
-
-        <div class="battery-wrap">
-          <div class="battery-ring" style="--battery-color: ${this._batteryColor(battery)}">
-            <svg viewBox="0 0 36 36">
-              <path
-                class="battery-bg"
-                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-              />
-              <path
-                class="battery-fill"
-                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                style="stroke-dasharray: ${battery || 0}, 100; stroke: ${this._batteryColor(battery)}"
-              />
-            </svg>
-            <span class="battery-text">
-              ${battery !== null ? `${Math.round(battery)}%` : "?"}
-            </span>
-            ${isCharging ? html`<ha-icon icon="mdi:lightning-bolt" class="charging-icon"></ha-icon>` : ""}
+          <div class="overlay-bottom">
+            ${satellites !== null ? html`<span class="info-pill">\u{1F6F0} ${satellites} Sat</span>` : ""}
+            ${wifiRssi !== null ? html`<span class="info-pill">\u{1F4E1} ${wifiRssi} dBm</span>` : ""}
+            ${rtk && rtk !== "unknown" && rtk !== "unavailable" ? html`<span class="info-pill">${rtk}</span>` : ""}
           </div>
         </div>
       </div>
-
-      ${isExpert
-        ? html`
-            <div class="status-details">
-              ${satellites !== null
-                ? html`<span class="detail-badge" title="Satelliten">
-                    <ha-icon icon="mdi:satellite-variant"></ha-icon> ${satellites}
-                    ${rtk ? html`<span class="rtk-badge">${rtk}</span>` : ""}
-                  </span>`
-                : ""}
-              ${wifiRssi !== null
-                ? html`<span class="detail-badge" title="WiFi ${wifiRssi} dBm">
-                    <ha-icon icon=${this._signalIcon(wifiRssi)}></ha-icon> ${wifiRssi} dBm
-                  </span>`
-                : ""}
-              ${progress !== null && state === "mowing"
-                ? html`<span class="detail-badge" title="Fortschritt">
-                    <ha-icon icon="mdi:percent"></ha-icon> ${progress}%
-                  </span>`
-                : ""}
-            </div>
-          `
-        : ""}
     `;
   }
+
+  _renderSimpleHeader(name, state, battery, isCharging) {
+    return html`
+      <div class="simple-header">
+        <ha-icon
+          icon=${this._stateIcon(state)}
+          class="${state === "mowing" ? "mowing-animation" : ""}"
+          style="color: ${this._stateColor(state)}; --mdc-icon-size: 36px"
+        ></ha-icon>
+        <div class="simple-header-info">
+          <span class="simple-header-name">${name}</span>
+          <span class="status-badge ${state}">${this._stateLabel(state)}</span>
+        </div>
+        <div class="battery-ring-hero" style="width:48px; height:48px">
+          <svg viewBox="0 0 36 36">
+            <path class="battery-bg-hero" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+            <path class="battery-fill-hero" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+              style="stroke-dasharray: ${battery || 0}, 100; stroke: ${this._batteryColor(battery)}" />
+          </svg>
+          <span class="battery-text-hero" style="color: var(--primary-text-color)">${battery !== null ? `${Math.round(battery)}%` : "?"}</span>
+          ${isCharging ? html`<ha-icon icon="mdi:lightning-bolt" class="charging-icon-hero"></ha-icon>` : ""}
+        </div>
+      </div>
+    `;
+  }
+
+  // --- Module renderers ---
 
   _renderControls(state) {
     const progress = getNumericState(this.hass, this._entities.sensors.progress);
@@ -388,112 +402,47 @@ class MammotionCard extends LitElement {
     `;
   }
 
-  // Combined: Map + Zones
-  _renderMapAndZonesContent(state) {
-    const lat = getNumericState(this.hass, this._entities.sensors.latitude);
-    const lng = getNumericState(this.hass, this._entities.sensors.longitude);
-    const sats = getNumericState(this.hass, this._entities.sensors.satellites_robot);
+  _renderZonesContent() {
     const areas = this._entities.areas;
+    if (!areas || areas.length === 0) return html`<div class="empty-hint">Keine Bereiche gefunden</div>`;
 
     return html`
-      ${lat !== null && lng !== null
-        ? html`
-            <div id="mmc-map" class="map-container"></div>
-            ${sats !== null
-              ? html`<div class="map-info"><ha-icon icon="mdi:satellite-variant" style="--mdc-icon-size:14px"></ha-icon> ${sats} Satelliten · ${lat.toFixed(5)}, ${lng.toFixed(5)}</div>`
-              : ""}
-          `
-        : html`<div class="map-placeholder">Keine GPS-Position verfügbar</div>`}
+      <div class="zone-list">
+        ${areas.map((eid) => {
+          const stateObj = this.hass.states[eid];
+          const isUnavailable = !stateObj || stateObj.state === "unavailable";
+          const isOn = stateObj?.state === "on";
 
-      ${areas && areas.length > 0
-        ? html`
-            <div class="zone-list">
-              ${areas.map((eid) => {
-                const stateObj = this.hass.states[eid];
-                const isUnavailable = !stateObj || stateObj.state === "unavailable";
-                const isOn = stateObj?.state === "on";
+          const rawName = stateObj?.attributes?.friendly_name || "";
+          let name;
+          if (rawName && rawName !== eid) {
+            name = rawName.replace(/^[A-Za-z]+-[A-Z0-9]+\s+/, "");
+            if (name === rawName) name = rawName.replace(/^.*?\s+(Bereich)/i, "$1");
+          } else {
+            const match = eid.match(/bereich_(\w+)$/);
+            name = match ? `Bereich ${match[1].replace(/_/g, ".")}` : "Bereich";
+          }
 
-                const rawName = stateObj?.attributes?.friendly_name || "";
-                let name;
-                if (rawName && rawName !== eid) {
-                  name = rawName.replace(/^[A-Za-z]+-[A-Z0-9]+\s+/, "");
-                  if (name === rawName) name = rawName.replace(/^.*?\s+(Bereich)/i, "$1");
-                } else {
-                  const match = eid.match(/bereich_(\w+)$/);
-                  name = match ? `Bereich ${match[1].replace(/_/g, ".")}` : "Bereich";
-                }
-
-                return html`
-                  <div class="zone-row ${isUnavailable ? "unavailable" : ""}">
-                    <span class="zone-name">
-                      ${name}
-                      ${isUnavailable
-                        ? html`<span class="unavailable-hint">(nicht verfügbar)</span>`
-                        : ""}
-                    </span>
-                    <ha-switch
-                      .checked=${isOn}
-                      .disabled=${isUnavailable}
-                      @change=${() => !isUnavailable && this._toggleSwitch(eid)}
-                    ></ha-switch>
-                  </div>
-                `;
-              })}
+          return html`
+            <div class="zone-row ${isUnavailable ? "unavailable" : ""}">
+              <span class="zone-name">
+                ${name}
+                ${isUnavailable
+                  ? html`<span class="unavailable-hint">(nicht verfügbar)</span>`
+                  : ""}
+              </span>
+              <ha-switch
+                .checked=${isOn}
+                .disabled=${isUnavailable}
+                @change=${() => !isUnavailable && this._toggleSwitch(eid)}
+              ></ha-switch>
             </div>
-          `
-        : html`<div class="empty-hint">Keine Bereiche gefunden</div>`}
-    `;
-  }
-
-  _renderCameraContent() {
-    const cameraEntity = this._entities.camera;
-    if (!cameraEntity || !this.hass.states[cameraEntity]) {
-      return html`<div class="camera-placeholder">
-        <ha-icon icon="mdi:camera-off"></ha-icon>
-        <span>Keine Kamera verfügbar</span>
-      </div>`;
-    }
-
-    // Lazy load: only render when section is open
-    if (!this._isSectionOpen("camera")) return "";
-
-    const stateObj = this.hass.states[cameraEntity];
-    const camState = stateObj.state;
-
-    // Show placeholder when camera is idle/unavailable
-    if (camState === "unavailable" || camState === "idle") {
-      return html`<div class="camera-placeholder" @click=${() => this._showMoreInfo(cameraEntity)}>
-        <ha-icon icon="mdi:camera-off"></ha-icon>
-        <span>Kamera verfügbar wenn der Mäher fährt</span>
-      </div>`;
-    }
-
-    const token = stateObj.attributes?.access_token;
-    const imgUrl = token
-      ? `/api/camera_proxy/${cameraEntity}?token=${token}`
-      : `/api/camera_proxy/${cameraEntity}`;
-
-    return html`
-      <div class="camera-container" @click=${() => this._showMoreInfo(cameraEntity)}>
-        <img
-          src=${imgUrl}
-          alt="Mäher-Kamera"
-          class="camera-image"
-          @error=${(e) => {
-            e.target.style.display = "none";
-            const placeholder = e.target.parentElement.querySelector(".camera-fallback");
-            if (placeholder) placeholder.style.display = "flex";
-          }}
-        />
-        <div class="camera-fallback camera-placeholder" style="display:none">
-          <ha-icon icon="mdi:camera-off"></ha-icon>
-          <span>Kamera verfügbar wenn der Mäher fährt</span>
-        </div>
+          `;
+        })}
       </div>
     `;
   }
 
-  // Combined: Mowing settings + Device toggles
   _renderSettingsContent() {
     const ents = this._entities;
     return html`
@@ -575,6 +524,102 @@ class MammotionCard extends LitElement {
             <div class="schedule-hint">
               <ha-icon icon="mdi:information-outline"></ha-icon>
               Weitere Mähpläne können in der Mammotion App erstellt werden.
+            </div>
+          `
+        : ""}
+    `;
+  }
+
+  // --- Maintenance Module ---
+
+  _renderMaintenanceContent(isExpert) {
+    const ents = this._entities;
+    const bladeUsed = getNumericState(this.hass, ents.sensors.blade_used_time);
+    const bladeWarn = getNumericState(this.hass, ents.sensors.blade_warn_time);
+    const batteryCycles = getNumericState(this.hass, ents.sensors.battery_cycles);
+    const totalDistance = getNumericState(this.hass, ents.sensors.total_distance);
+    const errorCode = getStateValue(this.hass, ents.sensors.error_code);
+    const errorMessage = getStateValue(this.hass, ents.sensors.error_message);
+    const errorTime = getStateValue(this.hass, ents.sensors.error_time);
+
+    let bladePercent = null;
+    if (bladeUsed !== null && bladeWarn !== null && bladeWarn > 0) {
+      bladePercent = Math.min(100, (bladeUsed / bladeWarn) * 100);
+    }
+    const bladeBarColor = bladePercent === null ? "#999"
+      : bladePercent < 50 ? "#4caf50"
+      : bladePercent < 80 ? "#ff9800"
+      : "#f44336";
+
+    const cyclesValid = batteryCycles !== null && batteryCycles !== 65535;
+    const hasError = errorCode && errorCode !== "unknown" && errorCode !== "unavailable" && errorCode !== "0";
+
+    return html`
+      ${bladeUsed !== null
+        ? html`
+            <div class="maint-blade">
+              <div class="maint-label">Klingen-Laufzeit</div>
+              ${bladePercent !== null
+                ? html`
+                    <div class="blade-bar-wrap">
+                      <div class="blade-bar">
+                        <div class="blade-bar-fill" style="width:${bladePercent}%; background:${bladeBarColor}"></div>
+                      </div>
+                      <span class="blade-bar-text">${bladeUsed.toFixed(1)} von ${bladeWarn.toFixed(1)} Stunden (${Math.round(bladePercent)}%)</span>
+                    </div>
+                  `
+                : html`<div class="maint-val">${bladeUsed.toFixed(1)} Stunden</div>`}
+            </div>
+          `
+        : ""}
+
+      <div class="maint-row">
+        <span>Batterie-Zyklen</span>
+        <span class="maint-val">${cyclesValid ? batteryCycles : "Nicht verfügbar"}</span>
+      </div>
+
+      ${totalDistance !== null
+        ? html`
+            <div class="maint-row">
+              <span>Gesamtstrecke</span>
+              <span class="maint-val">${totalDistance.toFixed(1)} km</span>
+            </div>
+          `
+        : ""}
+
+      ${hasError
+        ? html`
+            <div class="maint-error">
+              <ha-icon icon="mdi:alert-circle" style="--mdc-icon-size:16px; color:var(--error-color, #f44336)"></ha-icon>
+              <span>Letzter Fehler: ${errorCode} - ${errorMessage || "Unbekannt"} (${this._formatRelativeDate(errorTime)})</span>
+            </div>
+          `
+        : html`
+            <div class="maint-ok">
+              <ha-icon icon="mdi:check-circle" style="--mdc-icon-size:16px; color:#4caf50"></ha-icon>
+              <span>Keine Fehler</span>
+            </div>
+          `}
+
+      ${isExpert
+        ? html`
+            <div class="maint-actions">
+              <button class="maint-btn" @click=${() => this._resetBladeTime()}>
+                <ha-icon icon="mdi:refresh"></ha-icon>
+                Klingenzeit zurücksetzen
+              </button>
+              <div class="maint-input-row">
+                <input
+                  type="number"
+                  class="maint-input"
+                  placeholder="Stunden"
+                  .value=${this._bladeWarnInput || ""}
+                  @input=${(e) => { this._bladeWarnInput = e.target.value; }}
+                />
+                <button class="maint-btn small" @click=${() => this._setBladeWarningTime()}>
+                  Warnzeit setzen
+                </button>
+              </div>
             </div>
           `
         : ""}
@@ -768,13 +813,31 @@ class MammotionCard extends LitElement {
     }
   }
 
-  _showMoreInfo(entityId) {
-    const event = new CustomEvent("hass-more-info", {
-      detail: { entityId },
-      bubbles: true,
-      composed: true,
-    });
-    this.dispatchEvent(event);
+  async _resetBladeTime() {
+    if (!window.confirm("Klingenzeit wirklich zurücksetzen?")) return;
+    try {
+      await this.hass.callService("mammotion", "reset_blade_time", {
+        entity_id: this._config.entity,
+      });
+    } catch (e) {
+      this._showServiceError(e.message || "Klingenzeit zurücksetzen fehlgeschlagen");
+    }
+  }
+
+  async _setBladeWarningTime() {
+    const hours = parseFloat(this._bladeWarnInput);
+    if (isNaN(hours) || hours <= 0) {
+      this._showServiceError("Bitte gültigen Stundenwert eingeben");
+      return;
+    }
+    try {
+      await this.hass.callService("mammotion", "set_blade_warning_time", {
+        entity_id: this._config.entity,
+        hours: hours,
+      });
+    } catch (e) {
+      this._showServiceError(e.message || "Warnzeit setzen fehlgeschlagen");
+    }
   }
 
   _showServiceError(msg) {
@@ -810,31 +873,22 @@ class MammotionCard extends LitElement {
     await this._loadLeaflet();
     if (!window.L || this._leafletMap) return;
 
-    this._leafletMap = L.map(container, { zoomControl: true }).setView([lat, lng], 19);
+    this._leafletMap = L.map(container, {
+      zoomControl: false,
+      attributionControl: false,
+    }).setView([lat, lng], 19);
 
-    // Satellite (Esri) as default, street map as alternative
-    const satellite = L.tileLayer(
+    L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-      { maxZoom: 21, attribution: "Esri" }
-    );
-    const streets = L.tileLayer(
-      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-      { maxZoom: 21, attribution: "&copy; OSM" }
-    );
-
-    satellite.addTo(this._leafletMap);
-    L.control.layers(
-      { "Satellit": satellite, "Straße": streets },
-      {},
-      { position: "topright" }
+      { maxZoom: 21 }
     ).addTo(this._leafletMap);
 
     const color = this._markerColor(this._getMowerState());
     this._mapMarker = L.circleMarker([lat, lng], {
       radius: 8,
-      color: color,
+      color: "#fff",
       fillColor: color,
-      fillOpacity: 0.8,
+      fillOpacity: 0.9,
       weight: 2,
     }).addTo(this._leafletMap);
 
@@ -849,7 +903,7 @@ class MammotionCard extends LitElement {
 
     this._mapMarker.setLatLng([lat, lng]);
     const color = this._markerColor(this._getMowerState());
-    this._mapMarker.setStyle({ color, fillColor: color });
+    this._mapMarker.setStyle({ fillColor: color });
 
     if (this._getMowerState() === "mowing") {
       this._leafletMap.panTo([lat, lng], { animate: true });
@@ -863,7 +917,7 @@ class MammotionCard extends LitElement {
 
   async updated(changedProps) {
     super.updated(changedProps);
-    if (this._isSectionOpen("map_and_zones") && !this._leafletMap) {
+    if (!this._leafletMap && this._config?.modules?.map !== false) {
       await this._initMap();
     }
     if (this._leafletMap) {
@@ -885,7 +939,6 @@ class MammotionCard extends LitElement {
     const ents = this._entities;
     if (!ents) return [];
     const ids = [ents.lawn_mower];
-    if (ents.camera) ids.push(ents.camera);
     if (ents.device_tracker) ids.push(ents.device_tracker);
     if (ents.charging) ids.push(ents.charging);
     for (const group of ["sensors", "buttons", "selects", "numbers", "switches"]) {
@@ -943,10 +996,27 @@ class MammotionCard extends LitElement {
     });
   }
 
+  _formatRelativeDate(dateStr) {
+    if (!dateStr || dateStr === "unknown" || dateStr === "unavailable") return "Unbekannt";
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return dateStr;
+      const now = new Date();
+      const diffMs = now - date;
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      if (diffDays === 0) return "Heute";
+      if (diffDays === 1) return "Gestern";
+      if (diffDays < 7) return `vor ${diffDays} Tagen`;
+      if (diffDays < 30) return `vor ${Math.floor(diffDays / 7)} Wochen`;
+      return `${String(date.getDate()).padStart(2, "0")}.${String(date.getMonth() + 1).padStart(2, "0")}.${date.getFullYear()} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+    } catch {
+      return dateStr;
+    }
+  }
+
   _countEntities() {
     if (!this._entities) return 0;
     let count = 1;
-    if (this._entities.camera) count++;
     if (this._entities.device_tracker) count++;
     if (this._entities.charging) count++;
     for (const group of ["sensors", "buttons", "selects", "numbers", "switches"]) {
@@ -996,6 +1066,18 @@ class MammotionCard extends LitElement {
         flex-shrink: 0;
       }
 
+      .error-msg-banner {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        margin-bottom: var(--mmc-spacing);
+        background: var(--error-color, #f44336);
+        color: white;
+        font-size: 13px;
+        border-radius: 8px;
+      }
+
       .service-error {
         display: flex;
         align-items: center;
@@ -1018,20 +1100,174 @@ class MammotionCard extends LitElement {
         to { opacity: 1; transform: translateY(0); }
       }
 
-      /* Status Header */
-      .status-header {
+      /* ===== Map Hero ===== */
+      .map-hero {
+        position: relative;
+        height: 280px;
+        overflow: hidden;
+      }
+
+      .map-hero .map-container {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+      }
+
+      .map-hero-placeholder {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        background: var(--secondary-background-color, #2c2c2c);
+        color: var(--secondary-text-color);
+        font-size: 14px;
+      }
+
+      .map-hero-placeholder ha-icon {
+        --mdc-icon-size: 48px;
+        opacity: 0.4;
+      }
+
+      .map-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 16px;
+        pointer-events: none;
+        background: linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0.45) 0%,
+          transparent 35%,
+          transparent 65%,
+          rgba(0, 0, 0, 0.45) 100%
+        );
+      }
+
+      .overlay-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        pointer-events: auto;
+      }
+
+      .device-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .device-name {
+        font-size: 18px;
+        font-weight: 500;
+        color: white;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+      }
+
+      .status-badge {
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+        color: white;
+        width: fit-content;
+      }
+      .status-badge.docked { background: rgba(33, 150, 243, 0.85); }
+      .status-badge.mowing { background: rgba(76, 175, 80, 0.85); }
+      .status-badge.paused { background: rgba(255, 152, 0, 0.85); }
+      .status-badge.returning { background: rgba(33, 150, 243, 0.85); }
+      .status-badge.error { background: rgba(244, 67, 54, 0.85); }
+      .status-badge.unknown { background: rgba(158, 158, 158, 0.85); }
+
+      .battery-ring-hero {
+        position: relative;
+        width: 56px;
+        height: 56px;
+        pointer-events: auto;
+      }
+
+      .battery-ring-hero svg {
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+      }
+
+      .battery-bg-hero {
+        fill: none;
+        stroke: rgba(255, 255, 255, 0.3);
+        stroke-width: 3;
+      }
+
+      .battery-fill-hero {
+        fill: none;
+        stroke-width: 3;
+        stroke-linecap: round;
+        transition: stroke-dasharray 0.5s ease;
+      }
+
+      .battery-text-hero {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 13px;
+        font-weight: 600;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+      }
+
+      .charging-icon-hero {
+        position: absolute;
+        bottom: -4px;
+        right: -4px;
+        --mdc-icon-size: 18px;
+        color: #ff9800;
+        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+      }
+
+      .overlay-bottom {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        pointer-events: auto;
+      }
+
+      .info-pill {
+        background: rgba(0, 0, 0, 0.55);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+      }
+
+      /* Simple Header (fallback when map disabled) */
+      .simple-header {
         display: flex;
         align-items: center;
         gap: var(--mmc-spacing);
-        padding-bottom: var(--mmc-spacing);
+        padding: var(--mmc-spacing);
       }
 
-      .status-icon-wrap {
-        flex-shrink: 0;
+      .simple-header-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
       }
 
-      .status-icon {
-        --mdc-icon-size: 40px;
+      .simple-header-name {
+        font-size: 16px;
+        font-weight: 500;
+        color: var(--primary-text-color);
       }
 
       .mowing-animation {
@@ -1043,113 +1279,7 @@ class MammotionCard extends LitElement {
         50% { opacity: 0.5; }
       }
 
-      .status-info {
-        flex: 1;
-        min-width: 0;
-      }
-
-      .mower-name {
-        font-size: 16px;
-        font-weight: 500;
-        color: var(--primary-text-color);
-      }
-
-      .state-badge {
-        display: inline-block;
-        padding: 2px 10px;
-        border-radius: 12px;
-        color: white;
-        font-size: 12px;
-        font-weight: 500;
-        margin-top: 4px;
-      }
-
-      .error-msg {
-        font-size: 12px;
-        color: var(--error-color, #f44336);
-        margin-top: 4px;
-        word-break: break-word;
-      }
-
-      /* Battery Ring */
-      .battery-wrap {
-        flex-shrink: 0;
-      }
-
-      .battery-ring {
-        position: relative;
-        width: 56px;
-        height: 56px;
-      }
-
-      .battery-ring svg {
-        width: 100%;
-        height: 100%;
-        transform: rotate(-90deg);
-      }
-
-      .battery-bg {
-        fill: none;
-        stroke: var(--divider-color, #e0e0e0);
-        stroke-width: 3;
-      }
-
-      .battery-fill {
-        fill: none;
-        stroke-width: 3;
-        stroke-linecap: round;
-        transition: stroke-dasharray 0.5s ease;
-      }
-
-      .battery-text {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--primary-text-color);
-      }
-
-      .charging-icon {
-        position: absolute;
-        bottom: -4px;
-        right: -4px;
-        --mdc-icon-size: 18px;
-        color: var(--warning-color, #ff9800);
-      }
-
-      /* Status Details */
-      .status-details {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        padding-bottom: var(--mmc-spacing);
-        border-bottom: 1px solid var(--divider-color, #e0e0e0);
-        margin-bottom: var(--mmc-spacing);
-      }
-
-      .detail-badge {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        font-size: 12px;
-        color: var(--secondary-text-color);
-        background: var(--secondary-background-color, #f5f5f5);
-        padding: 2px 8px;
-        border-radius: 8px;
-      }
-
-      .detail-badge ha-icon {
-        --mdc-icon-size: 14px;
-      }
-
-      .rtk-badge {
-        font-weight: 600;
-        color: var(--state-active-color, #4caf50);
-      }
-
-      /* Controls */
+      /* ===== Controls ===== */
       .controls {
         padding-bottom: var(--mmc-spacing);
         border-bottom: 1px solid var(--divider-color, #e0e0e0);
@@ -1212,36 +1342,20 @@ class MammotionCard extends LitElement {
         min-height: 48px;
       }
 
-      .ctrl-btn:active {
-        opacity: 0.7;
-      }
+      .ctrl-btn:active { opacity: 0.7; }
+      .ctrl-btn ha-icon { --mdc-icon-size: 20px; }
+      .ctrl-btn.start { background: var(--state-active-color, #4caf50); }
+      .ctrl-btn.pause { background: var(--warning-color, #ff9800); }
+      .ctrl-btn.dock { background: var(--info-color, #2196f3); }
+      .ctrl-btn.cancel { background: var(--error-color, #f44336); }
 
-      .ctrl-btn ha-icon {
-        --mdc-icon-size: 20px;
-      }
-
-      .ctrl-btn.start {
-        background: var(--state-active-color, #4caf50);
-      }
-      .ctrl-btn.pause {
-        background: var(--warning-color, #ff9800);
-      }
-      .ctrl-btn.dock {
-        background: var(--info-color, #2196f3);
-      }
-      .ctrl-btn.cancel {
-        background: var(--error-color, #f44336);
-      }
-
-      /* Accordion Sections */
+      /* ===== Accordion ===== */
       .section {
         margin-bottom: 4px;
         border-bottom: 1px solid var(--divider-color, #e0e0e0);
       }
 
-      .section:last-of-type {
-        border-bottom: none;
-      }
+      .section:last-of-type { border-bottom: none; }
 
       .section-header {
         display: flex;
@@ -1272,9 +1386,7 @@ class MammotionCard extends LitElement {
         flex-shrink: 0;
       }
 
-      .chevron.open {
-        transform: rotate(90deg);
-      }
+      .chevron.open { transform: rotate(90deg); }
 
       .accordion-content {
         overflow: hidden;
@@ -1309,97 +1421,23 @@ class MammotionCard extends LitElement {
         background: var(--divider-color, #e0e0e0);
       }
 
-      .sync-btn:active {
-        opacity: 0.7;
-      }
-
-      .sync-btn svg {
-        width: 18px;
-        height: 18px;
-      }
-
-      .sync-btn.syncing svg {
-        animation: spin 1s linear infinite;
-      }
-
-      .sync-btn.syncing {
-        color: var(--state-active-color, #4caf50);
-      }
+      .sync-btn:active { opacity: 0.7; }
+      .sync-btn svg { width: 18px; height: 18px; }
+      .sync-btn.syncing svg { animation: spin 1s linear infinite; }
+      .sync-btn.syncing { color: var(--state-active-color, #4caf50); }
 
       @keyframes spin {
         from { transform: rotate(0deg); }
         to { transform: rotate(360deg); }
       }
 
-      /* Map */
-      .map-container {
-        height: 250px;
-        border-radius: var(--mmc-radius);
-        overflow: hidden;
-        margin-bottom: 8px;
-        z-index: 0;
-      }
-
-      .map-placeholder {
-        height: 120px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--secondary-text-color);
-        font-size: 13px;
-        background: var(--secondary-background-color, #f5f5f5);
-        border-radius: var(--mmc-radius);
-      }
-
-      .map-info {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        font-size: 11px;
-        color: var(--secondary-text-color);
-        padding: 4px 0 8px 0;
-      }
-
-      /* Camera */
-      .camera-container {
-        border-radius: var(--mmc-radius);
-        overflow: hidden;
-        cursor: pointer;
-      }
-
-      .camera-image {
-        width: 100%;
-        display: block;
-        border-radius: var(--mmc-radius);
-      }
-
-      .camera-placeholder {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        height: 120px;
-        background: var(--secondary-background-color, #f5f5f5);
-        border-radius: var(--mmc-radius);
-        color: var(--secondary-text-color);
-        font-size: 13px;
-        cursor: pointer;
-      }
-
-      .camera-placeholder ha-icon {
-        --mdc-icon-size: 32px;
-        opacity: 0.5;
-      }
-
-      /* Settings Divider */
+      /* ===== Settings ===== */
       .settings-divider {
         height: 1px;
         background: var(--divider-color, #e0e0e0);
         margin: 8px 0;
       }
 
-      /* Config Grid */
       .config-grid {
         display: grid;
         gap: 8px;
@@ -1420,9 +1458,7 @@ class MammotionCard extends LitElement {
         color: var(--secondary-text-color);
       }
 
-      .slider-row input[type="range"] {
-        flex: 1;
-      }
+      .slider-row input[type="range"] { flex: 1; }
 
       .slider-val {
         flex: 0 0 70px;
@@ -1431,13 +1467,8 @@ class MammotionCard extends LitElement {
         color: var(--primary-text-color);
       }
 
-      .slider-row.disabled {
-        opacity: 0.5;
-      }
-
-      .slider-row.disabled input[type="range"] {
-        pointer-events: none;
-      }
+      .slider-row.disabled { opacity: 0.5; }
+      .slider-row.disabled input[type="range"] { pointer-events: none; }
 
       .select-row select {
         flex: 1;
@@ -1449,7 +1480,7 @@ class MammotionCard extends LitElement {
         font-size: 13px;
       }
 
-      /* Zones */
+      /* ===== Zones ===== */
       .zone-list {
         display: grid;
         gap: 4px;
@@ -1462,6 +1493,7 @@ class MammotionCard extends LitElement {
         align-items: center;
         justify-content: space-between;
         padding: 6px 0;
+        min-height: 44px;
       }
 
       .zone-name {
@@ -1469,13 +1501,8 @@ class MammotionCard extends LitElement {
         color: var(--primary-text-color);
       }
 
-      .zone-row.unavailable {
-        opacity: 0.45;
-      }
-
-      .zone-row.unavailable ha-switch {
-        pointer-events: none;
-      }
+      .zone-row.unavailable { opacity: 0.45; }
+      .zone-row.unavailable ha-switch { pointer-events: none; }
 
       .unavailable-hint {
         font-size: 11px;
@@ -1502,7 +1529,12 @@ class MammotionCard extends LitElement {
         color: var(--primary-text-color);
       }
 
-      /* Schedule */
+      ha-switch {
+        min-height: 44px;
+        min-width: 44px;
+      }
+
+      /* ===== Schedule ===== */
       .task-list {
         display: flex;
         flex-wrap: wrap;
@@ -1525,9 +1557,7 @@ class MammotionCard extends LitElement {
         min-height: 44px;
       }
 
-      .task-btn:active {
-        opacity: 0.7;
-      }
+      .task-btn:active { opacity: 0.7; }
 
       .task-btn ha-icon {
         --mdc-icon-size: 18px;
@@ -1541,7 +1571,6 @@ class MammotionCard extends LitElement {
         text-overflow: ellipsis;
       }
 
-      /* Task Area Status Pills */
       .task-area-status {
         display: flex;
         flex-wrap: wrap;
@@ -1558,25 +1587,10 @@ class MammotionCard extends LitElement {
         font-weight: 500;
       }
 
-      .task-area-pill.active {
-        background: var(--state-active-color, #4caf50);
-        color: white;
-      }
-
-      .task-area-pill.waiting {
-        background: var(--divider-color, #e0e0e0);
-        color: var(--secondary-text-color);
-      }
-
-      .task-area-pill.completed {
-        background: var(--info-color, #2196f3);
-        color: white;
-      }
-
-      .task-area-pill.other {
-        background: var(--warning-color, #ff9800);
-        color: white;
-      }
+      .task-area-pill.active { background: var(--state-active-color, #4caf50); color: white; }
+      .task-area-pill.waiting { background: var(--divider-color, #e0e0e0); color: var(--secondary-text-color); }
+      .task-area-pill.completed { background: var(--info-color, #2196f3); color: white; }
+      .task-area-pill.other { background: var(--warning-color, #ff9800); color: white; }
 
       .schedule-info {
         display: grid;
@@ -1592,9 +1606,7 @@ class MammotionCard extends LitElement {
         color: var(--secondary-text-color);
       }
 
-      .schedule-row ha-icon {
-        --mdc-icon-size: 16px;
-      }
+      .schedule-row ha-icon { --mdc-icon-size: 16px; }
 
       .schedule-hint {
         display: flex;
@@ -1607,11 +1619,122 @@ class MammotionCard extends LitElement {
         padding-bottom: 4px;
       }
 
-      .schedule-hint ha-icon {
-        --mdc-icon-size: 14px;
+      .schedule-hint ha-icon { --mdc-icon-size: 14px; }
+
+      /* ===== Maintenance ===== */
+      .maint-blade {
+        margin-bottom: 12px;
       }
 
-      /* Footer */
+      .maint-label {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--secondary-text-color);
+        margin-bottom: 6px;
+      }
+
+      .blade-bar-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .blade-bar {
+        height: 10px;
+        background: var(--divider-color, #e0e0e0);
+        border-radius: 5px;
+        overflow: hidden;
+      }
+
+      .blade-bar-fill {
+        height: 100%;
+        border-radius: 5px;
+        transition: width 0.5s ease;
+      }
+
+      .blade-bar-text {
+        font-size: 11px;
+        color: var(--secondary-text-color);
+      }
+
+      .maint-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 0;
+        font-size: 13px;
+        color: var(--primary-text-color);
+      }
+
+      .maint-val {
+        color: var(--secondary-text-color);
+        font-weight: 500;
+      }
+
+      .maint-error,
+      .maint-ok {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 0;
+        font-size: 13px;
+      }
+
+      .maint-error { color: var(--error-color, #f44336); }
+      .maint-ok { color: var(--state-active-color, #4caf50); }
+
+      .maint-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid var(--divider-color, #e0e0e0);
+      }
+
+      .maint-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border: 1px solid var(--divider-color, #e0e0e0);
+        border-radius: var(--mmc-radius);
+        background: var(--secondary-background-color, #f5f5f5);
+        color: var(--primary-text-color);
+        font-size: 13px;
+        cursor: pointer;
+        min-height: 40px;
+      }
+
+      .maint-btn:active { opacity: 0.7; }
+      .maint-btn ha-icon { --mdc-icon-size: 16px; }
+
+      .maint-btn.small {
+        flex: 0 0 auto;
+        min-height: 36px;
+        padding: 6px 12px;
+      }
+
+      .maint-input-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .maint-input {
+        flex: 1;
+        padding: 6px 10px;
+        border: 1px solid var(--divider-color, #e0e0e0);
+        border-radius: 4px;
+        background: var(--card-background-color, #fff);
+        color: var(--primary-text-color);
+        font-size: 13px;
+        min-height: 36px;
+        box-sizing: border-box;
+      }
+
+      /* ===== Footer ===== */
       .footer {
         display: flex;
         justify-content: space-between;
@@ -1620,45 +1743,17 @@ class MammotionCard extends LitElement {
         color: var(--disabled-text-color, #999);
       }
 
-      /* ===== Responsive: Mobile-first ===== */
+      /* ===== Responsive ===== */
 
-      ha-switch {
-        min-height: 44px;
-        min-width: 44px;
-      }
-
-      .zone-row,
-      .toggle-row {
-        min-height: 44px;
-      }
-
-      /* Small cards (< 360px) */
       @container mmc (max-width: 359px) {
-        .button-row {
-          flex-direction: column;
-        }
+        .map-hero { height: 220px; }
 
-        .task-list {
-          flex-direction: column;
-        }
+        .button-row { flex-direction: column; }
 
-        .task-btn {
-          width: 100%;
-          justify-content: center;
-        }
+        .task-list { flex-direction: column; }
+        .task-btn { width: 100%; justify-content: center; }
 
-        .status-header {
-          flex-wrap: wrap;
-        }
-
-        .battery-wrap {
-          margin-left: auto;
-        }
-
-        .detail-badge {
-          font-size: 11px;
-          padding: 2px 6px;
-        }
+        .device-name { font-size: 15px; }
 
         .slider-row label,
         .select-row label {
@@ -1670,18 +1765,11 @@ class MammotionCard extends LitElement {
           flex: 0 0 55px;
           font-size: 12px;
         }
-
-        .map-container {
-          height: 200px;
-        }
       }
 
-      /* Very narrow (< 300px) */
       @container mmc (max-width: 299px) {
         .slider-row,
-        .select-row {
-          flex-wrap: wrap;
-        }
+        .select-row { flex-wrap: wrap; }
 
         .slider-row label,
         .select-row label {
@@ -1689,32 +1777,15 @@ class MammotionCard extends LitElement {
           margin-bottom: 2px;
         }
 
-        .slider-row input[type="range"] {
-          flex: 1 1 60%;
-        }
-
-        .slider-val {
-          flex: 0 0 auto;
-        }
+        .slider-row input[type="range"] { flex: 1 1 60%; }
+        .slider-val { flex: 0 0 auto; }
       }
 
-      /* Wider cards (> 500px) */
       @container mmc (min-width: 500px) {
-        .mower-name {
-          font-size: 18px;
-        }
-
-        .button-row {
-          gap: 12px;
-        }
-
-        .config-grid {
-          grid-template-columns: 1fr 1fr;
-        }
-
-        .map-container {
-          height: 300px;
-        }
+        .map-hero { height: 320px; }
+        .device-name { font-size: 20px; }
+        .button-row { gap: 12px; }
+        .config-grid { grid-template-columns: 1fr 1fr; }
       }
     `;
   }
