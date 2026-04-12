@@ -12,6 +12,7 @@ class MammotionCard extends LitElement {
       _entities: { state: true },
       _syncingMap: { state: true },
       _syncingSchedule: { state: true },
+      _serviceError: { state: true },
     };
   }
 
@@ -39,7 +40,7 @@ class MammotionCard extends LitElement {
 
   setConfig(config) {
     if (!config.entity) {
-      throw new Error("Entity (lawn_mower.*) muss konfiguriert werden");
+      throw new Error("Please define a lawn_mower entity");
     }
     this._config = {
       mode: "family",
@@ -72,7 +73,7 @@ class MammotionCard extends LitElement {
   }
 
   getCardSize() {
-    return 4;
+    return this._config?.mode === "expert" ? 8 : 4;
   }
 
   _getMowerState() {
@@ -122,8 +123,21 @@ class MammotionCard extends LitElement {
   }
 
   render() {
-    if (!this.hass || !this._config || !this._entities) {
-      return html`<ha-card><div class="loading">Lade...</div></ha-card>`;
+    if (!this.hass || !this._config) {
+      return html`<ha-card><div class="card-content"><div class="loading">Lade...</div></div></ha-card>`;
+    }
+
+    if (!this.hass.states[this._config.entity]) {
+      return html`<ha-card><div class="card-content">
+        <div class="error-banner">
+          <ha-icon icon="mdi:alert-circle-outline"></ha-icon>
+          Entity nicht gefunden: ${this._config.entity}
+        </div>
+      </div></ha-card>`;
+    }
+
+    if (!this._entities) {
+      return html`<ha-card><div class="card-content"><div class="loading">Lade...</div></div></ha-card>`;
     }
 
     const state = this._getMowerState();
@@ -138,16 +152,24 @@ class MammotionCard extends LitElement {
 
     return html`
       <ha-card>
-        ${modules.status !== false ? this._renderStatus(name, state, battery, isCharging, isExpert) : ""}
-        ${modules.controls !== false ? this._renderControls(state) : ""}
-        ${modules.mowing_config && isExpert ? this._renderMowingConfig() : ""}
-        ${modules.zones !== false ? this._renderZones() : ""}
-        ${modules.schedule !== false ? this._renderSchedule(isExpert) : ""}
-        ${modules.device !== false && isExpert ? this._renderDevice() : ""}
+        <div class="card-content">
+          ${modules.status !== false ? this._renderStatus(name, state, battery, isCharging, isExpert) : ""}
+          ${modules.controls !== false ? this._renderControls(state) : ""}
+          ${modules.mowing_config && isExpert ? this._renderMowingConfig() : ""}
+          ${modules.zones !== false ? this._renderZones() : ""}
+          ${modules.schedule !== false ? this._renderSchedule(isExpert) : ""}
+          ${modules.device !== false && isExpert ? this._renderDevice() : ""}
 
-        <div class="footer">
-          <span class="version">Mammotion Card v${CARD_VERSION}</span>
-          <span class="entity-count">${this._countEntities()} Entities</span>
+          ${this._serviceError
+            ? html`<div class="service-error">
+                <ha-icon icon="mdi:alert-outline"></ha-icon> ${this._serviceError}
+              </div>`
+            : ""}
+
+          <div class="footer">
+            <span class="version">Mammotion Card v${CARD_VERSION}</span>
+            <span class="entity-count">${this._countEntities()} Entities</span>
+          </div>
         </div>
       </ha-card>
     `;
@@ -558,15 +580,23 @@ class MammotionCard extends LitElement {
 
   // --- Service calls ---
 
-  _callService(domain, service) {
-    this.hass.callService(domain, service, {
-      entity_id: this._config.entity,
-    });
+  async _callService(domain, service) {
+    try {
+      await this.hass.callService(domain, service, {
+        entity_id: this._config.entity,
+      });
+    } catch (e) {
+      this._showServiceError(e.message || "Service-Aufruf fehlgeschlagen");
+    }
   }
 
-  _pressButton(entityId) {
+  async _pressButton(entityId) {
     if (!entityId) return;
-    this.hass.callService("button", "press", { entity_id: entityId });
+    try {
+      await this.hass.callService("button", "press", { entity_id: entityId });
+    } catch (e) {
+      this._showServiceError(e.message || "Button-Aufruf fehlgeschlagen");
+    }
   }
 
   _handleSync(type) {
@@ -595,22 +625,68 @@ class MammotionCard extends LitElement {
     }, 3000);
   }
 
-  _toggleSwitch(entityId) {
-    this.hass.callService("switch", "toggle", { entity_id: entityId });
+  async _toggleSwitch(entityId) {
+    try {
+      await this.hass.callService("switch", "toggle", { entity_id: entityId });
+    } catch (e) {
+      this._showServiceError(e.message || "Switch-Aufruf fehlgeschlagen");
+    }
   }
 
-  _setNumber(entityId, value) {
-    this.hass.callService("number", "set_value", {
-      entity_id: entityId,
-      value,
-    });
+  async _setNumber(entityId, value) {
+    try {
+      await this.hass.callService("number", "set_value", {
+        entity_id: entityId,
+        value,
+      });
+    } catch (e) {
+      this._showServiceError(e.message || "Wert konnte nicht gesetzt werden");
+    }
   }
 
-  _setSelect(entityId, option) {
-    this.hass.callService("select", "select_option", {
-      entity_id: entityId,
-      option,
-    });
+  async _setSelect(entityId, option) {
+    try {
+      await this.hass.callService("select", "select_option", {
+        entity_id: entityId,
+        option,
+      });
+    } catch (e) {
+      this._showServiceError(e.message || "Auswahl fehlgeschlagen");
+    }
+  }
+
+  _showServiceError(msg) {
+    this._serviceError = msg;
+    this.requestUpdate();
+    setTimeout(() => {
+      this._serviceError = null;
+      this.requestUpdate();
+    }, 4000);
+  }
+
+  // --- Performance ---
+
+  shouldUpdate(changedProps) {
+    if (!changedProps.has("hass")) return true;
+    const oldHass = changedProps.get("hass");
+    if (!oldHass || !this._entities) return true;
+    const ids = this._getAllEntityIds();
+    return ids.some((eid) => oldHass.states[eid] !== this.hass.states[eid]);
+  }
+
+  _getAllEntityIds() {
+    const ents = this._entities;
+    if (!ents) return [];
+    const ids = [ents.lawn_mower];
+    if (ents.camera) ids.push(ents.camera);
+    if (ents.device_tracker) ids.push(ents.device_tracker);
+    if (ents.charging) ids.push(ents.charging);
+    for (const group of ["sensors", "buttons", "selects", "numbers", "switches"]) {
+      if (ents[group]) ids.push(...Object.values(ents[group]));
+    }
+    if (ents.areas) ids.push(...ents.areas);
+    if (ents.tasks) ids.push(...ents.tasks);
+    return ids;
   }
 
   // --- Helpers ---
@@ -654,14 +730,54 @@ class MammotionCard extends LitElement {
       }
 
       ha-card {
-        padding: var(--mmc-spacing);
         overflow: hidden;
+        border-radius: var(--ha-card-border-radius, 12px);
+      }
+
+      .card-content {
+        padding: var(--mmc-spacing);
       }
 
       .loading {
         padding: 24px;
         text-align: center;
         color: var(--secondary-text-color);
+      }
+
+      .error-banner {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 16px;
+        color: var(--error-color, #f44336);
+        font-size: 14px;
+      }
+
+      .error-banner ha-icon {
+        --mdc-icon-size: 24px;
+        flex-shrink: 0;
+      }
+
+      .service-error {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 12px;
+        margin-top: 8px;
+        background: var(--error-color, #f44336);
+        color: white;
+        font-size: 12px;
+        border-radius: 8px;
+        animation: fadeIn 0.2s ease;
+      }
+
+      .service-error ha-icon {
+        --mdc-icon-size: 16px;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(4px); }
+        to { opacity: 1; transform: translateY(0); }
       }
 
       /* Status Header */

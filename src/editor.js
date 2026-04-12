@@ -37,7 +37,11 @@ export class MammotionCardEditor extends LitElement {
 
     const newConfig = { ...this._config, [key]: value };
     this.dispatchEvent(
-      new CustomEvent("config-changed", { detail: { config: newConfig } })
+      new CustomEvent("config-changed", {
+        detail: { config: newConfig },
+        bubbles: true,
+        composed: true,
+      })
     );
   }
 
@@ -47,7 +51,11 @@ export class MammotionCardEditor extends LitElement {
     const modules = { ...MODULES_DEFAULT, ...this._config.modules, [module]: checked };
     const newConfig = { ...this._config, modules };
     this.dispatchEvent(
-      new CustomEvent("config-changed", { detail: { config: newConfig } })
+      new CustomEvent("config-changed", {
+        detail: { config: newConfig },
+        bubbles: true,
+        composed: true,
+      })
     );
   }
 
