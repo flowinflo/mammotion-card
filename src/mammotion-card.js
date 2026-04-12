@@ -445,17 +445,29 @@ class MammotionCard extends LitElement {
     `;
   }
 
-  // Camera with auth token fix
   _renderCameraContent() {
     const cameraEntity = this._entities.camera;
     if (!cameraEntity || !this.hass.states[cameraEntity]) {
-      return html`<div class="map-placeholder">Keine Kamera verfügbar</div>`;
+      return html`<div class="camera-placeholder">
+        <ha-icon icon="mdi:camera-off"></ha-icon>
+        <span>Keine Kamera verfügbar</span>
+      </div>`;
     }
 
-    // Lazy load: only render image when section is open
+    // Lazy load: only render when section is open
     if (!this._isSectionOpen("camera")) return "";
 
     const stateObj = this.hass.states[cameraEntity];
+    const camState = stateObj.state;
+
+    // Show placeholder when camera is idle/unavailable
+    if (camState === "unavailable" || camState === "idle") {
+      return html`<div class="camera-placeholder" @click=${() => this._showMoreInfo(cameraEntity)}>
+        <ha-icon icon="mdi:camera-off"></ha-icon>
+        <span>Kamera verfügbar wenn der Mäher fährt</span>
+      </div>`;
+    }
+
     const token = stateObj.attributes?.access_token;
     const imgUrl = token
       ? `/api/camera_proxy/${cameraEntity}?token=${token}`
@@ -467,8 +479,16 @@ class MammotionCard extends LitElement {
           src=${imgUrl}
           alt="Mäher-Kamera"
           class="camera-image"
-          @error=${(e) => { e.target.style.display = "none"; }}
+          @error=${(e) => {
+            e.target.style.display = "none";
+            const placeholder = e.target.parentElement.querySelector(".camera-fallback");
+            if (placeholder) placeholder.style.display = "flex";
+          }}
         />
+        <div class="camera-fallback camera-placeholder" style="display:none">
+          <ha-icon icon="mdi:camera-off"></ha-icon>
+          <span>Kamera verfügbar wenn der Mäher fährt</span>
+        </div>
       </div>
     `;
   }
@@ -1351,6 +1371,25 @@ class MammotionCard extends LitElement {
         width: 100%;
         display: block;
         border-radius: var(--mmc-radius);
+      }
+
+      .camera-placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        height: 120px;
+        background: var(--secondary-background-color, #f5f5f5);
+        border-radius: var(--mmc-radius);
+        color: var(--secondary-text-color);
+        font-size: 13px;
+        cursor: pointer;
+      }
+
+      .camera-placeholder ha-icon {
+        --mdc-icon-size: 32px;
+        opacity: 0.5;
       }
 
       /* Settings Divider */
