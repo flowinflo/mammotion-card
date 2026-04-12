@@ -3,23 +3,23 @@
  * Copyright 2019 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const t=globalThis,e=t.ShadowRoot&&(void 0===t.ShadyCSS||t.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,s=Symbol(),i=new WeakMap;let n=class{constructor(t,e,i){if(this._$cssResult$=!0,i!==s)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=t,this.t=e}get styleSheet(){let t=this.o;const s=this.t;if(e&&void 0===t){const e=void 0!==s&&1===s.length;e&&(t=i.get(s)),void 0===t&&((this.o=t=new CSSStyleSheet).replaceSync(this.cssText),e&&i.set(s,t))}return t}toString(){return this.cssText}};const r=(t,...e)=>{const i=1===t.length?t[0]:e.reduce((e,s,i)=>e+(t=>{if(!0===t._$cssResult$)return t.cssText;if("number"==typeof t)return t;throw Error("Value passed to 'css' function must be a 'css' function result: "+t+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(s)+t[i+1],t[0]);return new n(i,t,s)},o=e?t=>t:t=>t instanceof CSSStyleSheet?(t=>{let e="";for(const s of t.cssRules)e+=s.cssText;return(t=>new n("string"==typeof t?t:t+"",void 0,s))(e)})(t):t,{is:a,defineProperty:c,getOwnPropertyDescriptor:l,getOwnPropertyNames:d,getOwnPropertySymbols:h,getPrototypeOf:p}=Object,u=globalThis,g=u.trustedTypes,_=g?g.emptyScript:"",m=u.reactiveElementPolyfillSupport,f=(t,e)=>t,v={toAttribute(t,e){switch(e){case Boolean:t=t?_:null;break;case Object:case Array:t=null==t?t:JSON.stringify(t)}return t},fromAttribute(t,e){let s=t;switch(e){case Boolean:s=null!==t;break;case Number:s=null===t?null:Number(t);break;case Object:case Array:try{s=JSON.parse(t)}catch(t){s=null}}return s}},b=(t,e)=>!a(t,e),$={attribute:!0,type:String,converter:v,reflect:!1,useDefault:!1,hasChanged:b};
+const t=globalThis,e=t.ShadowRoot&&(void 0===t.ShadyCSS||t.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,s=Symbol(),i=new WeakMap;let r=class{constructor(t,e,i){if(this._$cssResult$=!0,i!==s)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=t,this.t=e}get styleSheet(){let t=this.o;const s=this.t;if(e&&void 0===t){const e=void 0!==s&&1===s.length;e&&(t=i.get(s)),void 0===t&&((this.o=t=new CSSStyleSheet).replaceSync(this.cssText),e&&i.set(s,t))}return t}toString(){return this.cssText}};const n=(t,...e)=>{const i=1===t.length?t[0]:e.reduce((e,s,i)=>e+(t=>{if(!0===t._$cssResult$)return t.cssText;if("number"==typeof t)return t;throw Error("Value passed to 'css' function must be a 'css' function result: "+t+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(s)+t[i+1],t[0]);return new r(i,t,s)},o=e?t=>t:t=>t instanceof CSSStyleSheet?(t=>{let e="";for(const s of t.cssRules)e+=s.cssText;return(t=>new r("string"==typeof t?t:t+"",void 0,s))(e)})(t):t,{is:a,defineProperty:c,getOwnPropertyDescriptor:l,getOwnPropertyNames:h,getOwnPropertySymbols:d,getPrototypeOf:p}=Object,u=globalThis,g=u.trustedTypes,_=g?g.emptyScript:"",m=u.reactiveElementPolyfillSupport,f=(t,e)=>t,v={toAttribute(t,e){switch(e){case Boolean:t=t?_:null;break;case Object:case Array:t=null==t?t:JSON.stringify(t)}return t},fromAttribute(t,e){let s=t;switch(e){case Boolean:s=null!==t;break;case Number:s=null===t?null:Number(t);break;case Object:case Array:try{s=JSON.parse(t)}catch(t){s=null}}return s}},b=(t,e)=>!a(t,e),$={attribute:!0,type:String,converter:v,reflect:!1,useDefault:!1,hasChanged:b};
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
- */Symbol.metadata??=Symbol("metadata"),u.litPropertyMetadata??=new WeakMap;let y=class extends HTMLElement{static addInitializer(t){this._$Ei(),(this.l??=[]).push(t)}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(t,e=$){if(e.state&&(e.attribute=!1),this._$Ei(),this.prototype.hasOwnProperty(t)&&((e=Object.create(e)).wrapped=!0),this.elementProperties.set(t,e),!e.noAccessor){const s=Symbol(),i=this.getPropertyDescriptor(t,s,e);void 0!==i&&c(this.prototype,t,i)}}static getPropertyDescriptor(t,e,s){const{get:i,set:n}=l(this.prototype,t)??{get(){return this[e]},set(t){this[e]=t}};return{get:i,set(e){const r=i?.call(this);n?.call(this,e),this.requestUpdate(t,r,s)},configurable:!0,enumerable:!0}}static getPropertyOptions(t){return this.elementProperties.get(t)??$}static _$Ei(){if(this.hasOwnProperty(f("elementProperties")))return;const t=p(this);t.finalize(),void 0!==t.l&&(this.l=[...t.l]),this.elementProperties=new Map(t.elementProperties)}static finalize(){if(this.hasOwnProperty(f("finalized")))return;if(this.finalized=!0,this._$Ei(),this.hasOwnProperty(f("properties"))){const t=this.properties,e=[...d(t),...h(t)];for(const s of e)this.createProperty(s,t[s])}const t=this[Symbol.metadata];if(null!==t){const e=litPropertyMetadata.get(t);if(void 0!==e)for(const[t,s]of e)this.elementProperties.set(t,s)}this._$Eh=new Map;for(const[t,e]of this.elementProperties){const s=this._$Eu(t,e);void 0!==s&&this._$Eh.set(s,t)}this.elementStyles=this.finalizeStyles(this.styles)}static finalizeStyles(t){const e=[];if(Array.isArray(t)){const s=new Set(t.flat(1/0).reverse());for(const t of s)e.unshift(o(t))}else void 0!==t&&e.push(o(t));return e}static _$Eu(t,e){const s=e.attribute;return!1===s?void 0:"string"==typeof s?s:"string"==typeof t?t.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=!1,this.hasUpdated=!1,this._$Em=null,this._$Ev()}_$Ev(){this._$ES=new Promise(t=>this.enableUpdating=t),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach(t=>t(this))}addController(t){(this._$EO??=new Set).add(t),void 0!==this.renderRoot&&this.isConnected&&t.hostConnected?.()}removeController(t){this._$EO?.delete(t)}_$E_(){const t=new Map,e=this.constructor.elementProperties;for(const s of e.keys())this.hasOwnProperty(s)&&(t.set(s,this[s]),delete this[s]);t.size>0&&(this._$Ep=t)}createRenderRoot(){const s=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return((s,i)=>{if(e)s.adoptedStyleSheets=i.map(t=>t instanceof CSSStyleSheet?t:t.styleSheet);else for(const e of i){const i=document.createElement("style"),n=t.litNonce;void 0!==n&&i.setAttribute("nonce",n),i.textContent=e.cssText,s.appendChild(i)}})(s,this.constructor.elementStyles),s}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(!0),this._$EO?.forEach(t=>t.hostConnected?.())}enableUpdating(t){}disconnectedCallback(){this._$EO?.forEach(t=>t.hostDisconnected?.())}attributeChangedCallback(t,e,s){this._$AK(t,s)}_$ET(t,e){const s=this.constructor.elementProperties.get(t),i=this.constructor._$Eu(t,s);if(void 0!==i&&!0===s.reflect){const n=(void 0!==s.converter?.toAttribute?s.converter:v).toAttribute(e,s.type);this._$Em=t,null==n?this.removeAttribute(i):this.setAttribute(i,n),this._$Em=null}}_$AK(t,e){const s=this.constructor,i=s._$Eh.get(t);if(void 0!==i&&this._$Em!==i){const t=s.getPropertyOptions(i),n="function"==typeof t.converter?{fromAttribute:t.converter}:void 0!==t.converter?.fromAttribute?t.converter:v;this._$Em=i;const r=n.fromAttribute(e,t.type);this[i]=r??this._$Ej?.get(i)??r,this._$Em=null}}requestUpdate(t,e,s,i=!1,n){if(void 0!==t){const r=this.constructor;if(!1===i&&(n=this[t]),s??=r.getPropertyOptions(t),!((s.hasChanged??b)(n,e)||s.useDefault&&s.reflect&&n===this._$Ej?.get(t)&&!this.hasAttribute(r._$Eu(t,s))))return;this.C(t,e,s)}!1===this.isUpdatePending&&(this._$ES=this._$EP())}C(t,e,{useDefault:s,reflect:i,wrapped:n},r){s&&!(this._$Ej??=new Map).has(t)&&(this._$Ej.set(t,r??e??this[t]),!0!==n||void 0!==r)||(this._$AL.has(t)||(this.hasUpdated||s||(e=void 0),this._$AL.set(t,e)),!0===i&&this._$Em!==t&&(this._$Eq??=new Set).add(t))}async _$EP(){this.isUpdatePending=!0;try{await this._$ES}catch(t){Promise.reject(t)}const t=this.scheduleUpdate();return null!=t&&await t,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(const[t,e]of this._$Ep)this[t]=e;this._$Ep=void 0}const t=this.constructor.elementProperties;if(t.size>0)for(const[e,s]of t){const{wrapped:t}=s,i=this[e];!0!==t||this._$AL.has(e)||void 0===i||this.C(e,void 0,s,i)}}let t=!1;const e=this._$AL;try{t=this.shouldUpdate(e),t?(this.willUpdate(e),this._$EO?.forEach(t=>t.hostUpdate?.()),this.update(e)):this._$EM()}catch(e){throw t=!1,this._$EM(),e}t&&this._$AE(e)}willUpdate(t){}_$AE(t){this._$EO?.forEach(t=>t.hostUpdated?.()),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(t)),this.updated(t)}_$EM(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(t){return!0}update(t){this._$Eq&&=this._$Eq.forEach(t=>this._$ET(t,this[t])),this._$EM()}updated(t){}firstUpdated(t){}};y.elementStyles=[],y.shadowRootOptions={mode:"open"},y[f("elementProperties")]=new Map,y[f("finalized")]=new Map,m?.({ReactiveElement:y}),(u.reactiveElementVersions??=[]).push("2.1.2");
+ */Symbol.metadata??=Symbol("metadata"),u.litPropertyMetadata??=new WeakMap;let y=class extends HTMLElement{static addInitializer(t){this._$Ei(),(this.l??=[]).push(t)}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(t,e=$){if(e.state&&(e.attribute=!1),this._$Ei(),this.prototype.hasOwnProperty(t)&&((e=Object.create(e)).wrapped=!0),this.elementProperties.set(t,e),!e.noAccessor){const s=Symbol(),i=this.getPropertyDescriptor(t,s,e);void 0!==i&&c(this.prototype,t,i)}}static getPropertyDescriptor(t,e,s){const{get:i,set:r}=l(this.prototype,t)??{get(){return this[e]},set(t){this[e]=t}};return{get:i,set(e){const n=i?.call(this);r?.call(this,e),this.requestUpdate(t,n,s)},configurable:!0,enumerable:!0}}static getPropertyOptions(t){return this.elementProperties.get(t)??$}static _$Ei(){if(this.hasOwnProperty(f("elementProperties")))return;const t=p(this);t.finalize(),void 0!==t.l&&(this.l=[...t.l]),this.elementProperties=new Map(t.elementProperties)}static finalize(){if(this.hasOwnProperty(f("finalized")))return;if(this.finalized=!0,this._$Ei(),this.hasOwnProperty(f("properties"))){const t=this.properties,e=[...h(t),...d(t)];for(const s of e)this.createProperty(s,t[s])}const t=this[Symbol.metadata];if(null!==t){const e=litPropertyMetadata.get(t);if(void 0!==e)for(const[t,s]of e)this.elementProperties.set(t,s)}this._$Eh=new Map;for(const[t,e]of this.elementProperties){const s=this._$Eu(t,e);void 0!==s&&this._$Eh.set(s,t)}this.elementStyles=this.finalizeStyles(this.styles)}static finalizeStyles(t){const e=[];if(Array.isArray(t)){const s=new Set(t.flat(1/0).reverse());for(const t of s)e.unshift(o(t))}else void 0!==t&&e.push(o(t));return e}static _$Eu(t,e){const s=e.attribute;return!1===s?void 0:"string"==typeof s?s:"string"==typeof t?t.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=!1,this.hasUpdated=!1,this._$Em=null,this._$Ev()}_$Ev(){this._$ES=new Promise(t=>this.enableUpdating=t),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach(t=>t(this))}addController(t){(this._$EO??=new Set).add(t),void 0!==this.renderRoot&&this.isConnected&&t.hostConnected?.()}removeController(t){this._$EO?.delete(t)}_$E_(){const t=new Map,e=this.constructor.elementProperties;for(const s of e.keys())this.hasOwnProperty(s)&&(t.set(s,this[s]),delete this[s]);t.size>0&&(this._$Ep=t)}createRenderRoot(){const s=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return((s,i)=>{if(e)s.adoptedStyleSheets=i.map(t=>t instanceof CSSStyleSheet?t:t.styleSheet);else for(const e of i){const i=document.createElement("style"),r=t.litNonce;void 0!==r&&i.setAttribute("nonce",r),i.textContent=e.cssText,s.appendChild(i)}})(s,this.constructor.elementStyles),s}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(!0),this._$EO?.forEach(t=>t.hostConnected?.())}enableUpdating(t){}disconnectedCallback(){this._$EO?.forEach(t=>t.hostDisconnected?.())}attributeChangedCallback(t,e,s){this._$AK(t,s)}_$ET(t,e){const s=this.constructor.elementProperties.get(t),i=this.constructor._$Eu(t,s);if(void 0!==i&&!0===s.reflect){const r=(void 0!==s.converter?.toAttribute?s.converter:v).toAttribute(e,s.type);this._$Em=t,null==r?this.removeAttribute(i):this.setAttribute(i,r),this._$Em=null}}_$AK(t,e){const s=this.constructor,i=s._$Eh.get(t);if(void 0!==i&&this._$Em!==i){const t=s.getPropertyOptions(i),r="function"==typeof t.converter?{fromAttribute:t.converter}:void 0!==t.converter?.fromAttribute?t.converter:v;this._$Em=i;const n=r.fromAttribute(e,t.type);this[i]=n??this._$Ej?.get(i)??n,this._$Em=null}}requestUpdate(t,e,s,i=!1,r){if(void 0!==t){const n=this.constructor;if(!1===i&&(r=this[t]),s??=n.getPropertyOptions(t),!((s.hasChanged??b)(r,e)||s.useDefault&&s.reflect&&r===this._$Ej?.get(t)&&!this.hasAttribute(n._$Eu(t,s))))return;this.C(t,e,s)}!1===this.isUpdatePending&&(this._$ES=this._$EP())}C(t,e,{useDefault:s,reflect:i,wrapped:r},n){s&&!(this._$Ej??=new Map).has(t)&&(this._$Ej.set(t,n??e??this[t]),!0!==r||void 0!==n)||(this._$AL.has(t)||(this.hasUpdated||s||(e=void 0),this._$AL.set(t,e)),!0===i&&this._$Em!==t&&(this._$Eq??=new Set).add(t))}async _$EP(){this.isUpdatePending=!0;try{await this._$ES}catch(t){Promise.reject(t)}const t=this.scheduleUpdate();return null!=t&&await t,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(const[t,e]of this._$Ep)this[t]=e;this._$Ep=void 0}const t=this.constructor.elementProperties;if(t.size>0)for(const[e,s]of t){const{wrapped:t}=s,i=this[e];!0!==t||this._$AL.has(e)||void 0===i||this.C(e,void 0,s,i)}}let t=!1;const e=this._$AL;try{t=this.shouldUpdate(e),t?(this.willUpdate(e),this._$EO?.forEach(t=>t.hostUpdate?.()),this.update(e)):this._$EM()}catch(e){throw t=!1,this._$EM(),e}t&&this._$AE(e)}willUpdate(t){}_$AE(t){this._$EO?.forEach(t=>t.hostUpdated?.()),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(t)),this.updated(t)}_$EM(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(t){return!0}update(t){this._$Eq&&=this._$Eq.forEach(t=>this._$ET(t,this[t])),this._$EM()}updated(t){}firstUpdated(t){}};y.elementStyles=[],y.shadowRootOptions={mode:"open"},y[f("elementProperties")]=new Map,y[f("finalized")]=new Map,m?.({ReactiveElement:y}),(u.reactiveElementVersions??=[]).push("2.1.2");
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const w=globalThis,x=t=>t,k=w.trustedTypes,A=k?k.createPolicy("lit-html",{createHTML:t=>t}):void 0,S="$lit$",E=`lit$${Math.random().toFixed(9).slice(2)}$`,z="?"+E,C=`<${z}>`,M=document,P=()=>M.createComment(""),O=t=>null===t||"object"!=typeof t&&"function"!=typeof t,U=Array.isArray,N="[ \t\n\f\r]",R=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,T=/-->/g,H=/>/g,B=RegExp(`>|${N}(?:([^\\s"'>=/]+)(${N}*=${N}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,"g"),j=/'/g,D=/"/g,L=/^(?:script|style|textarea|title)$/i,W=(t=>(e,...s)=>({_$litType$:t,strings:e,values:s}))(1),I=Symbol.for("lit-noChange"),V=Symbol.for("lit-nothing"),q=new WeakMap,F=M.createTreeWalker(M,129);function Z(t,e){if(!U(t)||!t.hasOwnProperty("raw"))throw Error("invalid template strings array");return void 0!==A?A.createHTML(e):e}const K=(t,e)=>{const s=t.length-1,i=[];let n,r=2===e?"<svg>":3===e?"<math>":"",o=R;for(let e=0;e<s;e++){const s=t[e];let a,c,l=-1,d=0;for(;d<s.length&&(o.lastIndex=d,c=o.exec(s),null!==c);)d=o.lastIndex,o===R?"!--"===c[1]?o=T:void 0!==c[1]?o=H:void 0!==c[2]?(L.test(c[2])&&(n=RegExp("</"+c[2],"g")),o=B):void 0!==c[3]&&(o=B):o===B?">"===c[0]?(o=n??R,l=-1):void 0===c[1]?l=-2:(l=o.lastIndex-c[2].length,a=c[1],o=void 0===c[3]?B:'"'===c[3]?D:j):o===D||o===j?o=B:o===T||o===H?o=R:(o=B,n=void 0);const h=o===B&&t[e+1].startsWith("/>")?" ":"";r+=o===R?s+C:l>=0?(i.push(a),s.slice(0,l)+S+s.slice(l)+E+h):s+E+(-2===l?e:h)}return[Z(t,r+(t[s]||"<?>")+(2===e?"</svg>":3===e?"</math>":"")),i]};class G{constructor({strings:t,_$litType$:e},s){let i;this.parts=[];let n=0,r=0;const o=t.length-1,a=this.parts,[c,l]=K(t,e);if(this.el=G.createElement(c,s),F.currentNode=this.el.content,2===e||3===e){const t=this.el.content.firstChild;t.replaceWith(...t.childNodes)}for(;null!==(i=F.nextNode())&&a.length<o;){if(1===i.nodeType){if(i.hasAttributes())for(const t of i.getAttributeNames())if(t.endsWith(S)){const e=l[r++],s=i.getAttribute(t).split(E),o=/([.?@])?(.*)/.exec(e);a.push({type:1,index:n,name:o[2],strings:s,ctor:"."===o[1]?tt:"?"===o[1]?et:"@"===o[1]?st:X}),i.removeAttribute(t)}else t.startsWith(E)&&(a.push({type:6,index:n}),i.removeAttribute(t));if(L.test(i.tagName)){const t=i.textContent.split(E),e=t.length-1;if(e>0){i.textContent=k?k.emptyScript:"";for(let s=0;s<e;s++)i.append(t[s],P()),F.nextNode(),a.push({type:2,index:++n});i.append(t[e],P())}}}else if(8===i.nodeType)if(i.data===z)a.push({type:2,index:n});else{let t=-1;for(;-1!==(t=i.data.indexOf(E,t+1));)a.push({type:7,index:n}),t+=E.length-1}n++}}static createElement(t,e){const s=M.createElement("template");return s.innerHTML=t,s}}function J(t,e,s=t,i){if(e===I)return e;let n=void 0!==i?s._$Co?.[i]:s._$Cl;const r=O(e)?void 0:e._$litDirective$;return n?.constructor!==r&&(n?._$AO?.(!1),void 0===r?n=void 0:(n=new r(t),n._$AT(t,s,i)),void 0!==i?(s._$Co??=[])[i]=n:s._$Cl=n),void 0!==n&&(e=J(t,n._$AS(t,e.values),n,i)),e}class Y{constructor(t,e){this._$AV=[],this._$AN=void 0,this._$AD=t,this._$AM=e}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(t){const{el:{content:e},parts:s}=this._$AD,i=(t?.creationScope??M).importNode(e,!0);F.currentNode=i;let n=F.nextNode(),r=0,o=0,a=s[0];for(;void 0!==a;){if(r===a.index){let e;2===a.type?e=new Q(n,n.nextSibling,this,t):1===a.type?e=new a.ctor(n,a.name,a.strings,this,t):6===a.type&&(e=new it(n,this,t)),this._$AV.push(e),a=s[++o]}r!==a?.index&&(n=F.nextNode(),r++)}return F.currentNode=M,i}p(t){let e=0;for(const s of this._$AV)void 0!==s&&(void 0!==s.strings?(s._$AI(t,s,e),e+=s.strings.length-2):s._$AI(t[e])),e++}}class Q{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(t,e,s,i){this.type=2,this._$AH=V,this._$AN=void 0,this._$AA=t,this._$AB=e,this._$AM=s,this.options=i,this._$Cv=i?.isConnected??!0}get parentNode(){let t=this._$AA.parentNode;const e=this._$AM;return void 0!==e&&11===t?.nodeType&&(t=e.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,e=this){t=J(this,t,e),O(t)?t===V||null==t||""===t?(this._$AH!==V&&this._$AR(),this._$AH=V):t!==this._$AH&&t!==I&&this._(t):void 0!==t._$litType$?this.$(t):void 0!==t.nodeType?this.T(t):(t=>U(t)||"function"==typeof t?.[Symbol.iterator])(t)?this.k(t):this._(t)}O(t){return this._$AA.parentNode.insertBefore(t,this._$AB)}T(t){this._$AH!==t&&(this._$AR(),this._$AH=this.O(t))}_(t){this._$AH!==V&&O(this._$AH)?this._$AA.nextSibling.data=t:this.T(M.createTextNode(t)),this._$AH=t}$(t){const{values:e,_$litType$:s}=t,i="number"==typeof s?this._$AC(t):(void 0===s.el&&(s.el=G.createElement(Z(s.h,s.h[0]),this.options)),s);if(this._$AH?._$AD===i)this._$AH.p(e);else{const t=new Y(i,this),s=t.u(this.options);t.p(e),this.T(s),this._$AH=t}}_$AC(t){let e=q.get(t.strings);return void 0===e&&q.set(t.strings,e=new G(t)),e}k(t){U(this._$AH)||(this._$AH=[],this._$AR());const e=this._$AH;let s,i=0;for(const n of t)i===e.length?e.push(s=new Q(this.O(P()),this.O(P()),this,this.options)):s=e[i],s._$AI(n),i++;i<e.length&&(this._$AR(s&&s._$AB.nextSibling,i),e.length=i)}_$AR(t=this._$AA.nextSibling,e){for(this._$AP?.(!1,!0,e);t!==this._$AB;){const e=x(t).nextSibling;x(t).remove(),t=e}}setConnected(t){void 0===this._$AM&&(this._$Cv=t,this._$AP?.(t))}}class X{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(t,e,s,i,n){this.type=1,this._$AH=V,this._$AN=void 0,this.element=t,this.name=e,this._$AM=i,this.options=n,s.length>2||""!==s[0]||""!==s[1]?(this._$AH=Array(s.length-1).fill(new String),this.strings=s):this._$AH=V}_$AI(t,e=this,s,i){const n=this.strings;let r=!1;if(void 0===n)t=J(this,t,e,0),r=!O(t)||t!==this._$AH&&t!==I,r&&(this._$AH=t);else{const i=t;let o,a;for(t=n[0],o=0;o<n.length-1;o++)a=J(this,i[s+o],e,o),a===I&&(a=this._$AH[o]),r||=!O(a)||a!==this._$AH[o],a===V?t=V:t!==V&&(t+=(a??"")+n[o+1]),this._$AH[o]=a}r&&!i&&this.j(t)}j(t){t===V?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,t??"")}}class tt extends X{constructor(){super(...arguments),this.type=3}j(t){this.element[this.name]=t===V?void 0:t}}class et extends X{constructor(){super(...arguments),this.type=4}j(t){this.element.toggleAttribute(this.name,!!t&&t!==V)}}class st extends X{constructor(t,e,s,i,n){super(t,e,s,i,n),this.type=5}_$AI(t,e=this){if((t=J(this,t,e,0)??V)===I)return;const s=this._$AH,i=t===V&&s!==V||t.capture!==s.capture||t.once!==s.once||t.passive!==s.passive,n=t!==V&&(s===V||i);i&&this.element.removeEventListener(this.name,this,s),n&&this.element.addEventListener(this.name,this,t),this._$AH=t}handleEvent(t){"function"==typeof this._$AH?this._$AH.call(this.options?.host??this.element,t):this._$AH.handleEvent(t)}}class it{constructor(t,e,s){this.element=t,this.type=6,this._$AN=void 0,this._$AM=e,this.options=s}get _$AU(){return this._$AM._$AU}_$AI(t){J(this,t)}}const nt=w.litHtmlPolyfillSupport;nt?.(G,Q),(w.litHtmlVersions??=[]).push("3.3.2");const rt=globalThis;
+const w=globalThis,x=t=>t,k=w.trustedTypes,A=k?k.createPolicy("lit-html",{createHTML:t=>t}):void 0,S="$lit$",E=`lit$${Math.random().toFixed(9).slice(2)}$`,z="?"+E,C=`<${z}>`,M=document,P=()=>M.createComment(""),N=t=>null===t||"object"!=typeof t&&"function"!=typeof t,O=Array.isArray,U="[ \t\n\f\r]",R=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,T=/-->/g,H=/>/g,B=RegExp(`>|${U}(?:([^\\s"'>=/]+)(${U}*=${U}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,"g"),W=/'/g,j=/"/g,L=/^(?:script|style|textarea|title)$/i,D=(t=>(e,...s)=>({_$litType$:t,strings:e,values:s}))(1),I=Symbol.for("lit-noChange"),V=Symbol.for("lit-nothing"),Z=new WeakMap,F=M.createTreeWalker(M,129);function q(t,e){if(!O(t)||!t.hasOwnProperty("raw"))throw Error("invalid template strings array");return void 0!==A?A.createHTML(e):e}const K=(t,e)=>{const s=t.length-1,i=[];let r,n=2===e?"<svg>":3===e?"<math>":"",o=R;for(let e=0;e<s;e++){const s=t[e];let a,c,l=-1,h=0;for(;h<s.length&&(o.lastIndex=h,c=o.exec(s),null!==c);)h=o.lastIndex,o===R?"!--"===c[1]?o=T:void 0!==c[1]?o=H:void 0!==c[2]?(L.test(c[2])&&(r=RegExp("</"+c[2],"g")),o=B):void 0!==c[3]&&(o=B):o===B?">"===c[0]?(o=r??R,l=-1):void 0===c[1]?l=-2:(l=o.lastIndex-c[2].length,a=c[1],o=void 0===c[3]?B:'"'===c[3]?j:W):o===j||o===W?o=B:o===T||o===H?o=R:(o=B,r=void 0);const d=o===B&&t[e+1].startsWith("/>")?" ":"";n+=o===R?s+C:l>=0?(i.push(a),s.slice(0,l)+S+s.slice(l)+E+d):s+E+(-2===l?e:d)}return[q(t,n+(t[s]||"<?>")+(2===e?"</svg>":3===e?"</math>":"")),i]};class G{constructor({strings:t,_$litType$:e},s){let i;this.parts=[];let r=0,n=0;const o=t.length-1,a=this.parts,[c,l]=K(t,e);if(this.el=G.createElement(c,s),F.currentNode=this.el.content,2===e||3===e){const t=this.el.content.firstChild;t.replaceWith(...t.childNodes)}for(;null!==(i=F.nextNode())&&a.length<o;){if(1===i.nodeType){if(i.hasAttributes())for(const t of i.getAttributeNames())if(t.endsWith(S)){const e=l[n++],s=i.getAttribute(t).split(E),o=/([.?@])?(.*)/.exec(e);a.push({type:1,index:r,name:o[2],strings:s,ctor:"."===o[1]?tt:"?"===o[1]?et:"@"===o[1]?st:X}),i.removeAttribute(t)}else t.startsWith(E)&&(a.push({type:6,index:r}),i.removeAttribute(t));if(L.test(i.tagName)){const t=i.textContent.split(E),e=t.length-1;if(e>0){i.textContent=k?k.emptyScript:"";for(let s=0;s<e;s++)i.append(t[s],P()),F.nextNode(),a.push({type:2,index:++r});i.append(t[e],P())}}}else if(8===i.nodeType)if(i.data===z)a.push({type:2,index:r});else{let t=-1;for(;-1!==(t=i.data.indexOf(E,t+1));)a.push({type:7,index:r}),t+=E.length-1}r++}}static createElement(t,e){const s=M.createElement("template");return s.innerHTML=t,s}}function J(t,e,s=t,i){if(e===I)return e;let r=void 0!==i?s._$Co?.[i]:s._$Cl;const n=N(e)?void 0:e._$litDirective$;return r?.constructor!==n&&(r?._$AO?.(!1),void 0===n?r=void 0:(r=new n(t),r._$AT(t,s,i)),void 0!==i?(s._$Co??=[])[i]=r:s._$Cl=r),void 0!==r&&(e=J(t,r._$AS(t,e.values),r,i)),e}class Y{constructor(t,e){this._$AV=[],this._$AN=void 0,this._$AD=t,this._$AM=e}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(t){const{el:{content:e},parts:s}=this._$AD,i=(t?.creationScope??M).importNode(e,!0);F.currentNode=i;let r=F.nextNode(),n=0,o=0,a=s[0];for(;void 0!==a;){if(n===a.index){let e;2===a.type?e=new Q(r,r.nextSibling,this,t):1===a.type?e=new a.ctor(r,a.name,a.strings,this,t):6===a.type&&(e=new it(r,this,t)),this._$AV.push(e),a=s[++o]}n!==a?.index&&(r=F.nextNode(),n++)}return F.currentNode=M,i}p(t){let e=0;for(const s of this._$AV)void 0!==s&&(void 0!==s.strings?(s._$AI(t,s,e),e+=s.strings.length-2):s._$AI(t[e])),e++}}class Q{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(t,e,s,i){this.type=2,this._$AH=V,this._$AN=void 0,this._$AA=t,this._$AB=e,this._$AM=s,this.options=i,this._$Cv=i?.isConnected??!0}get parentNode(){let t=this._$AA.parentNode;const e=this._$AM;return void 0!==e&&11===t?.nodeType&&(t=e.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,e=this){t=J(this,t,e),N(t)?t===V||null==t||""===t?(this._$AH!==V&&this._$AR(),this._$AH=V):t!==this._$AH&&t!==I&&this._(t):void 0!==t._$litType$?this.$(t):void 0!==t.nodeType?this.T(t):(t=>O(t)||"function"==typeof t?.[Symbol.iterator])(t)?this.k(t):this._(t)}O(t){return this._$AA.parentNode.insertBefore(t,this._$AB)}T(t){this._$AH!==t&&(this._$AR(),this._$AH=this.O(t))}_(t){this._$AH!==V&&N(this._$AH)?this._$AA.nextSibling.data=t:this.T(M.createTextNode(t)),this._$AH=t}$(t){const{values:e,_$litType$:s}=t,i="number"==typeof s?this._$AC(t):(void 0===s.el&&(s.el=G.createElement(q(s.h,s.h[0]),this.options)),s);if(this._$AH?._$AD===i)this._$AH.p(e);else{const t=new Y(i,this),s=t.u(this.options);t.p(e),this.T(s),this._$AH=t}}_$AC(t){let e=Z.get(t.strings);return void 0===e&&Z.set(t.strings,e=new G(t)),e}k(t){O(this._$AH)||(this._$AH=[],this._$AR());const e=this._$AH;let s,i=0;for(const r of t)i===e.length?e.push(s=new Q(this.O(P()),this.O(P()),this,this.options)):s=e[i],s._$AI(r),i++;i<e.length&&(this._$AR(s&&s._$AB.nextSibling,i),e.length=i)}_$AR(t=this._$AA.nextSibling,e){for(this._$AP?.(!1,!0,e);t!==this._$AB;){const e=x(t).nextSibling;x(t).remove(),t=e}}setConnected(t){void 0===this._$AM&&(this._$Cv=t,this._$AP?.(t))}}class X{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(t,e,s,i,r){this.type=1,this._$AH=V,this._$AN=void 0,this.element=t,this.name=e,this._$AM=i,this.options=r,s.length>2||""!==s[0]||""!==s[1]?(this._$AH=Array(s.length-1).fill(new String),this.strings=s):this._$AH=V}_$AI(t,e=this,s,i){const r=this.strings;let n=!1;if(void 0===r)t=J(this,t,e,0),n=!N(t)||t!==this._$AH&&t!==I,n&&(this._$AH=t);else{const i=t;let o,a;for(t=r[0],o=0;o<r.length-1;o++)a=J(this,i[s+o],e,o),a===I&&(a=this._$AH[o]),n||=!N(a)||a!==this._$AH[o],a===V?t=V:t!==V&&(t+=(a??"")+r[o+1]),this._$AH[o]=a}n&&!i&&this.j(t)}j(t){t===V?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,t??"")}}class tt extends X{constructor(){super(...arguments),this.type=3}j(t){this.element[this.name]=t===V?void 0:t}}class et extends X{constructor(){super(...arguments),this.type=4}j(t){this.element.toggleAttribute(this.name,!!t&&t!==V)}}class st extends X{constructor(t,e,s,i,r){super(t,e,s,i,r),this.type=5}_$AI(t,e=this){if((t=J(this,t,e,0)??V)===I)return;const s=this._$AH,i=t===V&&s!==V||t.capture!==s.capture||t.once!==s.once||t.passive!==s.passive,r=t!==V&&(s===V||i);i&&this.element.removeEventListener(this.name,this,s),r&&this.element.addEventListener(this.name,this,t),this._$AH=t}handleEvent(t){"function"==typeof this._$AH?this._$AH.call(this.options?.host??this.element,t):this._$AH.handleEvent(t)}}class it{constructor(t,e,s){this.element=t,this.type=6,this._$AN=void 0,this._$AM=e,this.options=s}get _$AU(){return this._$AM._$AU}_$AI(t){J(this,t)}}const rt=w.litHtmlPolyfillSupport;rt?.(G,Q),(w.litHtmlVersions??=[]).push("3.3.2");const nt=globalThis;
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
- */class ot extends y{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){const t=super.createRenderRoot();return this.renderOptions.renderBefore??=t.firstChild,t}update(t){const e=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=((t,e,s)=>{const i=s?.renderBefore??e;let n=i._$litPart$;if(void 0===n){const t=s?.renderBefore??null;i._$litPart$=n=new Q(e.insertBefore(P(),t),t,void 0,s??{})}return n._$AI(t),n})(e,this.renderRoot,this.renderOptions)}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0)}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1)}render(){return I}}ot._$litElement$=!0,ot.finalized=!0,rt.litElementHydrateSupport?.({LitElement:ot});const at=rt.litElementPolyfillSupport;at?.({LitElement:ot}),(rt.litElementVersions??=[]).push("4.2.2");const ct={sensors:{battery:"_batterie",activity_mode:"_aktivitatsmodus",progress:"_fortschritt",area:"_bereich",mowing_speed:"_mahgeschwindigkeit",blade_height:"_schnitthohe",total_time:"_gesamtzeit",elapsed_time:"_vergangene_zeit",left_time:"_verbleibende_zeit",satellites_robot:"_satelliten_roboter",l1_satellites:"_l1_satelliten_co_viewing",l2_satellites:"_l2_satelliten_co_viewing",rtk_position:"_rtk_position",position_type:"_typ_der_geratepositionierung",wifi_rssi:"_wi_fi_rssi",ble_rssi:"_ble_rssi",mnet_rssi:"_mobilfunk_rssi",connect_type:"_verbindungsart",latitude:"_breitengrad",longitude:"_langengrad",work_area:"_arbeitsbereich",error_code:"_letzter_fehlercode",error_message:"_letzte_fehlermeldung",error_time:"_letzter_fehlerzeitpunkt",blade_used_time:"_messernutzungszeit",blade_warn_time:"_messerverschleiss_warnzeit",total_distance:"_gesamtkilometerstand",battery_cycles:"_batteriezyklen",camera_brightness:"_kamera_helligkeit",non_work_hours:"_arbeitsfreie_zeit",task_duration:"_aufgabendauer",task_area:"_aufgabenbereich_area_1"},buttons:{release_dock:"_abdocken",cancel_task:"_aktuelle_aufgabe_abbrechen",sync_map:"_synchronisiere_karte",sync_schedule:"_synchronisiere_zeitplan",resync_rtk:"_synchronisiere_rtk_und_ladestation",relocate_dock:"_ladestation_umsetzen",nudge_forward:"_notfall_schub_vorwarts",nudge_back:"_notfall_schub_ruckwarts",nudge_left:"_notfall_schub_links",nudge_right:"_notfall_schub_rechts",restart:"_restart_mower"},selects:{charge_mode:"_aufladungsmodus",path_order:"_ausfuhrungsreihenfolge_des_pfades",obstacle_mode:"_modus_der_hinderniserkennung",nav_mode:"_navigationsmodus",border_laps:"_patrouillenrunden_fur_den_seitlichen_rasenschnitt",nogo_laps:"_patrouillenrunden_fur_mahen_von_no_go_zonen",angle_mode:"_wegwinkel_modus",turn_mode:"_wendemodus"},numbers:{working_speed:"_aufgabengeschwindigkeit",start_progress:"_fortschritt_beim_start",cutting_angle:"_kreuzungswinkel",blade_height:"_schnitthohe",path_spacing:"_wegabstand",path_angle:"_wegwinkel"},switches:{rain_mowing:"_regenerkennung_beim_mahen",rain_robot:"_regenerkennung_roboter",side_led:"_seitenlicht",schedule_updates:"_updates_ein_ausschalten"}};function lt(t){return{sensors:"sensor",buttons:"button",selects:"select",numbers:"number",switches:"switch"}[t]||t}const dt={single_grid:"Einzelbahn",double_grid:"Doppelbahn",segment_grid:"Segmentbahn",no_grid:"Ohne Bahn",zero_turn:"Nullwendung",multipoint:"Mehrpunkt",direct_touch:"Direktkontakt",slow_touch:"Langsamer Kontakt",less_touch:"Weniger Kontakt",no_touch:"Kein Kontakt",sensitive:"Empfindlich",direct:"Direkt",follow_perimeter:"Randverfolgung",border_first:"Rand zuerst",grid_first:"Bahn zuerst",relative_angle:"Relativer Winkel",absolute_angle:"Absoluter Winkel",random_angle:"Zufälliger Winkel",none:"Keine",one:"1 Runde",two:"2 Runden",three:"3 Runden",four:"4 Runden"};function ht(t,e){const s=function(t,e){return t&&e&&t.states[e]||null}(t,e);return s?s.state:null}function pt(t,e){const s=ht(t,e);if(null===s||"unknown"===s||"unavailable"===s)return null;const i=parseFloat(s);return isNaN(i)?null:i}const ut={status:!0,controls:!0,mowing_config:!0,zones:!0,device:!0,maintenance:!1,map:!1,camera:!1,schedule:!0};customElements.define("mammotion-card-editor",class extends ot{static get properties(){return{hass:{attribute:!1},_config:{state:!0}}}setConfig(t){this._config={...t}}_valueChanged(t){if(!this._config||!this.hass)return;const e=t.target,s=e.configValue;let i=t.detail?.value??e.value;"mode"===s&&(i=e.value);const n={...this._config,[s]:i};this.dispatchEvent(new CustomEvent("config-changed",{detail:{config:n},bubbles:!0,composed:!0}))}_moduleChanged(t){const e=t.target.configValue,s=t.target.checked,i={...ut,...this._config.modules,[e]:s},n={...this._config,modules:i};this.dispatchEvent(new CustomEvent("config-changed",{detail:{config:n},bubbles:!0,composed:!0}))}render(){if(!this.hass||!this._config)return W``;const t=Object.keys(this.hass.states).filter(t=>t.startsWith("lawn_mower.")).sort(),e={...ut,...this._config.modules};return W`
+ */class ot extends y{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){const t=super.createRenderRoot();return this.renderOptions.renderBefore??=t.firstChild,t}update(t){const e=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=((t,e,s)=>{const i=s?.renderBefore??e;let r=i._$litPart$;if(void 0===r){const t=s?.renderBefore??null;i._$litPart$=r=new Q(e.insertBefore(P(),t),t,void 0,s??{})}return r._$AI(t),r})(e,this.renderRoot,this.renderOptions)}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0)}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1)}render(){return I}}ot._$litElement$=!0,ot.finalized=!0,nt.litElementHydrateSupport?.({LitElement:ot});const at=nt.litElementPolyfillSupport;at?.({LitElement:ot}),(nt.litElementVersions??=[]).push("4.2.2");const ct={sensors:{battery:"_batterie",activity_mode:"_aktivitatsmodus",progress:"_fortschritt",area:"_bereich",mowing_speed:"_mahgeschwindigkeit",blade_height:"_schnitthohe",total_time:"_gesamtzeit",elapsed_time:"_vergangene_zeit",left_time:"_verbleibende_zeit",satellites_robot:"_satelliten_roboter",l1_satellites:"_l1_satelliten_co_viewing",l2_satellites:"_l2_satelliten_co_viewing",rtk_position:"_rtk_position",position_type:"_typ_der_geratepositionierung",wifi_rssi:"_wi_fi_rssi",ble_rssi:"_ble_rssi",mnet_rssi:"_mobilfunk_rssi",connect_type:"_verbindungsart",latitude:"_breitengrad",longitude:"_langengrad",work_area:"_arbeitsbereich",error_code:"_letzter_fehlercode",error_message:"_letzte_fehlermeldung",error_time:"_letzter_fehlerzeitpunkt",blade_used_time:"_messernutzungszeit",blade_warn_time:"_messerverschleiss_warnzeit",total_distance:"_gesamtkilometerstand",battery_cycles:"_batteriezyklen",camera_brightness:"_kamera_helligkeit",non_work_hours:"_arbeitsfreie_zeit",task_duration:"_aufgabendauer",task_area:"_aufgabenbereich_area_1"},buttons:{release_dock:"_abdocken",cancel_task:"_aktuelle_aufgabe_abbrechen",sync_map:"_synchronisiere_karte",sync_schedule:"_synchronisiere_zeitplan",resync_rtk:"_synchronisiere_rtk_und_ladestation",relocate_dock:"_ladestation_umsetzen",nudge_forward:"_notfall_schub_vorwarts",nudge_back:"_notfall_schub_ruckwarts",nudge_left:"_notfall_schub_links",nudge_right:"_notfall_schub_rechts",restart:"_restart_mower"},selects:{charge_mode:"_aufladungsmodus",path_order:"_ausfuhrungsreihenfolge_des_pfades",obstacle_mode:"_modus_der_hinderniserkennung",nav_mode:"_navigationsmodus",border_laps:"_patrouillenrunden_fur_den_seitlichen_rasenschnitt",nogo_laps:"_patrouillenrunden_fur_mahen_von_no_go_zonen",angle_mode:"_wegwinkel_modus",turn_mode:"_wendemodus"},numbers:{working_speed:"_aufgabengeschwindigkeit",start_progress:"_fortschritt_beim_start",cutting_angle:"_kreuzungswinkel",blade_height:"_schnitthohe",path_spacing:"_wegabstand",path_angle:"_wegwinkel"},switches:{rain_mowing:"_regenerkennung_beim_mahen",rain_robot:"_regenerkennung_roboter",side_led:"_seitenlicht",schedule_updates:"_updates_ein_ausschalten"}};function lt(t){return{sensors:"sensor",buttons:"button",selects:"select",numbers:"number",switches:"switch"}[t]||t}const ht={single_grid:"Einzelbahn",double_grid:"Doppelbahn",segment_grid:"Segmentbahn",no_grid:"Ohne Bahn",zero_turn:"Nullwendung",multipoint:"Mehrpunkt",direct_touch:"Direktkontakt",slow_touch:"Langsamer Kontakt",less_touch:"Weniger Kontakt",no_touch:"Kein Kontakt",sensitive:"Empfindlich",direct:"Direkt",follow_perimeter:"Randverfolgung",border_first:"Rand zuerst",grid_first:"Bahn zuerst",relative_angle:"Relativer Winkel",absolute_angle:"Absoluter Winkel",random_angle:"Zufälliger Winkel",none:"Keine",one:"1 Runde",two:"2 Runden",three:"3 Runden",four:"4 Runden"};function dt(t,e){const s=function(t,e){return t&&e&&t.states[e]||null}(t,e);return s?s.state:null}function pt(t,e){const s=dt(t,e);if(null===s||"unknown"===s||"unavailable"===s)return null;const i=parseFloat(s);return isNaN(i)?null:i}const ut={status:!0,controls:!0,mowing_config:!0,zones:!0,device:!0,maintenance:!1,map:!1,camera:!1,schedule:!0};customElements.define("mammotion-card-editor",class extends ot{static get properties(){return{hass:{attribute:!1},_config:{state:!0}}}setConfig(t){this._config={...t}}_valueChanged(t){if(!this._config||!this.hass)return;const e=t.target,s=e.configValue;let i=t.detail?.value??e.value;"mode"===s&&(i=e.value);const r={...this._config,[s]:i};this.dispatchEvent(new CustomEvent("config-changed",{detail:{config:r},bubbles:!0,composed:!0}))}_moduleChanged(t){const e=t.target.configValue,s=t.target.checked,i={...ut,...this._config.modules,[e]:s},r={...this._config,modules:i};this.dispatchEvent(new CustomEvent("config-changed",{detail:{config:r},bubbles:!0,composed:!0}))}render(){if(!this.hass||!this._config)return D``;const t=Object.keys(this.hass.states).filter(t=>t.startsWith("lawn_mower.")).sort(),e={...ut,...this._config.modules};return D`
       <div class="card-config">
         <div class="field">
           <label>Mäher-Entity (Pflicht)</label>
@@ -29,7 +29,7 @@ const w=globalThis,x=t=>t,k=w.trustedTypes,A=k?k.createPolicy("lit-html",{create
             @change=${this._valueChanged}
           >
             <option value="">-- lawn_mower Entity wählen --</option>
-            ${t.map(t=>W`
+            ${t.map(t=>D`
                 <option value=${t} ?selected=${this._config.entity===t}>
                   ${this.hass.states[t]?.attributes?.friendly_name||t}
                 </option>
@@ -63,7 +63,7 @@ const w=globalThis,x=t=>t,k=w.trustedTypes,A=k?k.createPolicy("lit-html",{create
         <div class="field">
           <label>Module</label>
           <div class="modules">
-            ${Object.entries(e).map(([t,e])=>W`
+            ${Object.entries(e).map(([t,e])=>D`
                 <label class="module-toggle">
                   <input
                     type="checkbox"
@@ -77,7 +77,7 @@ const w=globalThis,x=t=>t,k=w.trustedTypes,A=k?k.createPolicy("lit-html",{create
           </div>
         </div>
       </div>
-    `}static get styles(){return r`
+    `}static get styles(){return n`
       .card-config {
         padding: 16px;
       }
@@ -116,22 +116,22 @@ const w=globalThis,x=t=>t,k=w.trustedTypes,A=k?k.createPolicy("lit-html",{create
       .module-toggle input {
         width: auto;
       }
-    `}});const gt="0.4.0";customElements.define("mammotion-card",class extends ot{static get properties(){return{hass:{attribute:!1},_config:{state:!0},_entities:{state:!0},_syncingMap:{state:!0},_syncingSchedule:{state:!0},_serviceError:{state:!0}}}static getConfigElement(){return document.createElement("mammotion-card-editor")}static getStubConfig(t){return{entity:Object.keys(t.states).find(t=>t.startsWith("lawn_mower."))||"",mode:"family",modules:{status:!0,controls:!0,mowing_config:!0,zones:!0,schedule:!0,device:!0}}}setConfig(t){if(!t.entity)throw new Error("Please define a lawn_mower entity");this._config={mode:"family",modules:{status:!0,controls:!0,mowing_config:!0,zones:!0,schedule:!0,device:!0},...t},this._entities=null}set hass(t){const e=this._hass;this._hass=t,this._entities&&e||(this._entities=function(t,e){if(!t||!e)return null;const s=e.replace("lawn_mower.",""),i={lawn_mower:e,camera:`camera.${s}`,device_tracker:null,charging:`binary_sensor.${s}_ladestatus`,sensors:{},buttons:{},selects:{},numbers:{},switches:{},areas:[],tasks:[]},n=`device_tracker.${s}_${s}`;if(t.states[n])i.device_tracker=n;else for(const e of Object.keys(t.states))if(e.startsWith(`device_tracker.${s}`)){i.device_tracker=e;break}for(const[e,n]of Object.entries(ct))for(const[r,o]of Object.entries(n)){const n=`${lt(e)}.${s}${o}`;t.states[n]&&(i[e][r]=n)}for(const e of Object.keys(t.states))(e.startsWith(`switch.${s}_bereich_area_`)||e.startsWith(`switch.${s}_bereich_`))&&(e.includes("_regenerkennung")||e.includes("_seitenlicht")||e.includes("_updates")||i.areas.push(e));for(const e of Object.keys(t.states))e.startsWith(`button.${s}_`)&&(e.includes("_aufgabe_")||e.includes("_task_"))&&!e.includes("_abbrechen")&&i.tasks.push(e);return i}(t,this._config.entity)),this.requestUpdate("hass",e)}get hass(){return this._hass}getCardSize(){return"expert"===this._config?.mode?8:4}_getMowerState(){return ht(this.hass,this._config.entity)||"unknown"}_stateIcon(t){const e={mowing:"mdi:robot-mower",paused:"mdi:pause-circle",docked:"mdi:home-circle",returning:"mdi:arrow-left-circle",error:"mdi:alert-circle",unknown:"mdi:help-circle"};return e[t]||e.unknown}_stateColor(t){return{mowing:"var(--state-active-color, #4caf50)",paused:"var(--warning-color, #ff9800)",docked:"var(--info-color, #2196f3)",returning:"var(--info-color, #2196f3)",error:"var(--error-color, #f44336)"}[t]||"var(--secondary-text-color)"}_stateLabel(t){return{mowing:"Mäht",paused:"Pausiert",docked:"Angedockt",returning:"Fährt zurück",error:"Fehler",unknown:"Unbekannt"}[t]||t}_batteryColor(t){return null===t?"var(--secondary-text-color)":t>50?"var(--state-active-color, #4caf50)":t>20?"var(--warning-color, #ff9800)":"var(--error-color, #f44336)"}render(){if(!this.hass||!this._config)return W`<ha-card><div class="card-content"><div class="loading">Lade...</div></div></ha-card>`;if(!this.hass.states[this._config.entity])return W`<ha-card><div class="card-content">
+    `}});const gt="0.5.0";customElements.define("mammotion-card",class extends ot{static get properties(){return{hass:{attribute:!1},_config:{state:!0},_entities:{state:!0},_syncingMap:{state:!0},_syncingSchedule:{state:!0},_serviceError:{state:!0}}}static getConfigElement(){return document.createElement("mammotion-card-editor")}static getStubConfig(t){return{entity:Object.keys(t.states).find(t=>t.startsWith("lawn_mower."))||"",mode:"family",modules:{status:!0,controls:!0,mowing_config:!0,zones:!0,schedule:!0,device:!0}}}setConfig(t){if(!t.entity)throw new Error("Please define a lawn_mower entity");this._config={mode:"family",modules:{status:!0,controls:!0,mowing_config:!0,zones:!0,schedule:!0,device:!0},...t},this._entities=null}set hass(t){const e=this._hass;this._hass=t,this._entities&&e||(this._entities=function(t,e){if(!t||!e)return null;const s=e.replace("lawn_mower.",""),i={lawn_mower:e,camera:`camera.${s}`,device_tracker:null,charging:`binary_sensor.${s}_ladestatus`,sensors:{},buttons:{},selects:{},numbers:{},switches:{},areas:[],tasks:[],task_areas:[]},r=`device_tracker.${s}_${s}`;if(t.states[r])i.device_tracker=r;else for(const e of Object.keys(t.states))if(e.startsWith(`device_tracker.${s}`)){i.device_tracker=e;break}for(const[e,r]of Object.entries(ct))for(const[n,o]of Object.entries(r)){const r=`${lt(e)}.${s}${o}`;t.states[r]&&(i[e][n]=r)}for(const e of Object.keys(t.states))(e.startsWith(`switch.${s}_bereich_area_`)||e.startsWith(`switch.${s}_bereich_`))&&(e.includes("_regenerkennung")||e.includes("_seitenlicht")||e.includes("_updates")||i.areas.push(e));for(const e of Object.keys(t.states))!e.startsWith(`button.${s}_`)||!e.includes("_aufgabe_")&&!e.includes("_task_")||e.includes("_abbrechen")||e.includes("_synchronisiere")||i.tasks.push(e);for(const e of Object.keys(t.states))e.startsWith(`sensor.${s}_aufgabenbereich_`)&&i.task_areas.push(e);return i}(t,this._config.entity)),this.requestUpdate("hass",e)}get hass(){return this._hass}getCardSize(){return"expert"===this._config?.mode?8:4}_getMowerState(){return dt(this.hass,this._config.entity)||"unknown"}_stateIcon(t){const e={mowing:"mdi:robot-mower",paused:"mdi:pause-circle",docked:"mdi:home-circle",returning:"mdi:arrow-left-circle",error:"mdi:alert-circle",unknown:"mdi:help-circle"};return e[t]||e.unknown}_stateColor(t){return{mowing:"var(--state-active-color, #4caf50)",paused:"var(--warning-color, #ff9800)",docked:"var(--info-color, #2196f3)",returning:"var(--info-color, #2196f3)",error:"var(--error-color, #f44336)"}[t]||"var(--secondary-text-color)"}_stateLabel(t){return{mowing:"Mäht",paused:"Pausiert",docked:"Angedockt",returning:"Fährt zurück",error:"Fehler",unknown:"Unbekannt"}[t]||t}_batteryColor(t){return null===t?"var(--secondary-text-color)":t>50?"var(--state-active-color, #4caf50)":t>20?"var(--warning-color, #ff9800)":"var(--error-color, #f44336)"}render(){if(!this.hass||!this._config)return D`<ha-card><div class="card-content"><div class="loading">Lade...</div></div></ha-card>`;if(!this.hass.states[this._config.entity])return D`<ha-card><div class="card-content">
         <div class="error-banner">
           <ha-icon icon="mdi:alert-circle-outline"></ha-icon>
           Entity nicht gefunden: ${this._config.entity}
         </div>
-      </div></ha-card>`;if(!this._entities)return W`<ha-card><div class="card-content"><div class="loading">Lade...</div></div></ha-card>`;const t=this._getMowerState(),e=this._config.name||this.hass.states[this._config.entity]?.attributes?.friendly_name||"Mammotion",s=pt(this.hass,this._entities.sensors.battery),i="on"===ht(this.hass,this._entities.charging),n="expert"===this._config.mode,r=this._config.modules||{};return W`
+      </div></ha-card>`;if(!this._entities)return D`<ha-card><div class="card-content"><div class="loading">Lade...</div></div></ha-card>`;const t=this._getMowerState(),e=this._config.name||this.hass.states[this._config.entity]?.attributes?.friendly_name||"Mammotion",s=pt(this.hass,this._entities.sensors.battery),i="on"===dt(this.hass,this._entities.charging),r="expert"===this._config.mode,n=this._config.modules||{};return D`
       <ha-card>
         <div class="card-content">
-          ${!1!==r.status?this._renderStatus(e,t,s,i,n):""}
-          ${!1!==r.controls?this._renderControls(t):""}
-          ${r.mowing_config&&n?this._renderMowingConfig():""}
-          ${!1!==r.zones?this._renderZones():""}
-          ${!1!==r.schedule?this._renderSchedule(n):""}
-          ${!1!==r.device&&n?this._renderDevice():""}
+          ${!1!==n.status?this._renderStatus(e,t,s,i,r):""}
+          ${!1!==n.controls?this._renderControls(t):""}
+          ${n.mowing_config&&r?this._renderMowingConfig():""}
+          ${!1!==n.zones?this._renderZones():""}
+          ${!1!==n.schedule?this._renderSchedule(r):""}
+          ${!1!==n.device&&r?this._renderDevice():""}
 
-          ${this._serviceError?W`<div class="service-error">
+          ${this._serviceError?D`<div class="service-error">
                 <ha-icon icon="mdi:alert-outline"></ha-icon> ${this._serviceError}
               </div>`:""}
 
@@ -141,7 +141,7 @@ const w=globalThis,x=t=>t,k=w.trustedTypes,A=k?k.createPolicy("lit-html",{create
           </div>
         </div>
       </ha-card>
-    `}_renderStatus(t,e,s,i,n){const r=pt(this.hass,this._entities.sensors.progress),o=ht(this.hass,this._entities.sensors.error_message),a=pt(this.hass,this._entities.sensors.wifi_rssi),c=pt(this.hass,this._entities.sensors.satellites_robot),l=ht(this.hass,this._entities.sensors.rtk_position);return W`
+    `}_renderStatus(t,e,s,i,r){const n=pt(this.hass,this._entities.sensors.progress),o=dt(this.hass,this._entities.sensors.error_message),a=pt(this.hass,this._entities.sensors.wifi_rssi),c=pt(this.hass,this._entities.sensors.satellites_robot),l=dt(this.hass,this._entities.sensors.rtk_position);return D`
       <div class="status-header">
         <div class="status-icon-wrap">
           <ha-icon
@@ -156,7 +156,7 @@ const w=globalThis,x=t=>t,k=w.trustedTypes,A=k?k.createPolicy("lit-html",{create
           <div class="state-badge" style="background: ${this._stateColor(e)}">
             ${this._stateLabel(e)}
           </div>
-          ${"error"===e&&o?W`<div class="error-msg">${o}</div>`:""}
+          ${"error"===e&&o?D`<div class="error-msg">${o}</div>`:""}
         </div>
 
         <div class="battery-wrap">
@@ -175,58 +175,58 @@ const w=globalThis,x=t=>t,k=w.trustedTypes,A=k?k.createPolicy("lit-html",{create
             <span class="battery-text">
               ${null!==s?`${Math.round(s)}%`:"?"}
             </span>
-            ${i?W`<ha-icon icon="mdi:lightning-bolt" class="charging-icon"></ha-icon>`:""}
+            ${i?D`<ha-icon icon="mdi:lightning-bolt" class="charging-icon"></ha-icon>`:""}
           </div>
         </div>
       </div>
 
-      ${n?W`
+      ${r?D`
             <div class="status-details">
-              ${null!==c?W`<span class="detail-badge" title="Satelliten">
+              ${null!==c?D`<span class="detail-badge" title="Satelliten">
                     <ha-icon icon="mdi:satellite-variant"></ha-icon> ${c}
-                    ${l?W`<span class="rtk-badge">${l}</span>`:""}
+                    ${l?D`<span class="rtk-badge">${l}</span>`:""}
                   </span>`:""}
-              ${null!==a?W`<span class="detail-badge" title="WiFi ${a} dBm">
+              ${null!==a?D`<span class="detail-badge" title="WiFi ${a} dBm">
                     <ha-icon icon=${this._signalIcon(a)}></ha-icon> ${a} dBm
                   </span>`:""}
-              ${null!==r&&"mowing"===e?W`<span class="detail-badge" title="Fortschritt">
-                    <ha-icon icon="mdi:percent"></ha-icon> ${r}%
+              ${null!==n&&"mowing"===e?D`<span class="detail-badge" title="Fortschritt">
+                    <ha-icon icon="mdi:percent"></ha-icon> ${n}%
                   </span>`:""}
             </div>
           `:""}
-    `}_renderControls(t){const e=pt(this.hass,this._entities.sensors.progress),s=pt(this.hass,this._entities.sensors.elapsed_time),i=pt(this.hass,this._entities.sensors.left_time);return W`
+    `}_renderControls(t){const e=pt(this.hass,this._entities.sensors.progress),s=pt(this.hass,this._entities.sensors.elapsed_time),i=pt(this.hass,this._entities.sensors.left_time);return D`
       <div class="controls">
-        ${"mowing"===t?W`
+        ${"mowing"===t?D`
               <div class="progress-bar">
                 <div class="progress-fill" style="width: ${e||0}%"></div>
                 <span class="progress-text">${e||0}%</span>
               </div>
               <div class="time-row">
-                ${null!==s?W`<span>${this._formatMinutes(s)} vergangen</span>`:""}
-                ${null!==i?W`<span>${this._formatMinutes(i)} verbleibend</span>`:""}
+                ${null!==s?D`<span>${this._formatMinutes(s)} vergangen</span>`:""}
+                ${null!==i?D`<span>${this._formatMinutes(i)} verbleibend</span>`:""}
               </div>
             `:""}
 
         <div class="button-row">
-          ${"docked"===t||"paused"===t?W`
+          ${"docked"===t||"paused"===t?D`
                 <button class="ctrl-btn start" @click=${()=>this._callService("lawn_mower","start_mowing")}>
                   <ha-icon icon="mdi:play"></ha-icon>
                   ${"paused"===t?"Fortsetzen":"Start"}
                 </button>
               `:""}
-          ${"mowing"===t?W`
+          ${"mowing"===t?D`
                 <button class="ctrl-btn pause" @click=${()=>this._callService("lawn_mower","pause")}>
                   <ha-icon icon="mdi:pause"></ha-icon>
                   Pause
                 </button>
               `:""}
-          ${"mowing"===t||"paused"===t?W`
+          ${"mowing"===t||"paused"===t?D`
                 <button class="ctrl-btn dock" @click=${()=>this._callService("lawn_mower","dock")}>
                   <ha-icon icon="mdi:home"></ha-icon>
                   Zurück
                 </button>
               `:""}
-          ${"mowing"===t||"paused"===t?W`
+          ${"mowing"===t||"paused"===t?D`
                 <button class="ctrl-btn cancel" @click=${()=>this._pressButton(this._entities.buttons.cancel_task)}>
                   <ha-icon icon="mdi:close-circle"></ha-icon>
                   Abbrechen
@@ -234,7 +234,7 @@ const w=globalThis,x=t=>t,k=w.trustedTypes,A=k?k.createPolicy("lit-html",{create
               `:""}
         </div>
       </div>
-    `}_renderMowingConfig(){const t=this._entities;return W`
+    `}_renderMowingConfig(){const t=this._entities;return D`
       <div class="section">
         <div class="section-title">
           <ha-icon icon="mdi:cog"></ha-icon> Mäh-Einstellungen
@@ -248,11 +248,11 @@ const w=globalThis,x=t=>t,k=w.trustedTypes,A=k?k.createPolicy("lit-html",{create
           ${this._renderSelect(t.selects.obstacle_mode,"Hinderniserkennung")}
         </div>
       </div>
-    `}_renderZones(){const t=this._entities.areas;if(!t||0===t.length)return"";const e=this._entities.buttons.sync_map;return W`
+    `}_renderZones(){const t=this._entities.areas;if(!t||0===t.length)return"";const e=this._entities.buttons.sync_map;return D`
       <div class="section">
         <div class="section-title">
           <ha-icon icon="mdi:vector-square"></ha-icon> Bereiche
-          ${e?W`
+          ${e?D`
                 <button
                   class="sync-btn ${this._syncingMap?"syncing":""}"
                   @click=${()=>this._handleSync("map")}
@@ -269,11 +269,11 @@ const w=globalThis,x=t=>t,k=w.trustedTypes,A=k?k.createPolicy("lit-html",{create
               `:""}
         </div>
         <div class="zone-list">
-          ${t.map(t=>{const e=this.hass.states[t],s=!e||"unavailable"===e.state,i="on"===e?.state,n=e?.attributes?.friendly_name||"";let r;if(n&&n!==t)r=n.replace(/^.*?\s+(Bereich)/i,"$1");else{const e=t.match(/bereich_area_(\d+(?:_\d+)?)$/);r=e?`Bereich ${e[1].replace(/_/g,".")}`:"Bereich"}return W`
+          ${t.map(t=>{const e=this.hass.states[t],s=!e||"unavailable"===e.state,i="on"===e?.state,r=e?.attributes?.friendly_name||"";let n;if(r&&r!==t)n=r.replace(/^.*?\s+(Bereich)/i,"$1");else{const e=t.match(/bereich_area_(\d+(?:_\d+)?)$/);n=e?`Bereich ${e[1].replace(/_/g,".")}`:"Bereich"}return D`
               <div class="zone-row ${s?"unavailable":""}">
                 <span class="zone-name">
-                  ${r}
-                  ${s?W`<span class="unavailable-hint"
+                  ${n}
+                  ${s?D`<span class="unavailable-hint"
                         >(nicht verfügbar)</span
                       >`:""}
                 </span>
@@ -286,22 +286,29 @@ const w=globalThis,x=t=>t,k=w.trustedTypes,A=k?k.createPolicy("lit-html",{create
             `})}
         </div>
       </div>
-    `}_renderDevice(){const t=this._entities;return W`
+    `}_renderDevice(){const t=this._entities;return D`
       <div class="section">
         <div class="section-title">
           <ha-icon icon="mdi:tune"></ha-icon> Gerätesteuerung
         </div>
         <div class="device-toggles">
-          ${this._renderToggle(t.switches.rain_mowing,"Regenerkennung (Mähen)")}
-          ${this._renderToggle(t.switches.rain_robot,"Regenerkennung (Roboter)")}
+          ${this._renderCombinedRainToggle()}
           ${this._renderToggle(t.switches.side_led,"Seitenlicht")}
         </div>
       </div>
-    `}_renderSchedule(t){const e=this._entities,s=e.tasks||[],i=ht(this.hass,e.sensors.non_work_hours),n=ht(this.hass,e.sensors.task_duration),r=ht(this.hass,e.sensors.task_area),o=e.buttons.sync_schedule;return 0!==s.length||i||n?W`
+    `}_renderCombinedRainToggle(){const t=this._entities?.switches?.rain_mowing,e=this._entities?.switches?.rain_robot;if(!t&&!e)return"";const s=t&&"on"===this.hass.states[t]?.state||e&&"on"===this.hass.states[e]?.state;return D`
+      <div class="toggle-row">
+        <span><ha-icon icon="mdi:weather-rainy" style="--mdc-icon-size:18px; margin-right:4px; vertical-align:middle; color:var(--secondary-text-color)"></ha-icon>Regenschutz</span>
+        <ha-switch
+          .checked=${s}
+          @change=${()=>this._toggleRainProtection(!s)}
+        ></ha-switch>
+      </div>
+    `}async _toggleRainProtection(t){const e=t?"turn_on":"turn_off",s=this._entities?.switches?.rain_mowing,i=this._entities?.switches?.rain_robot;try{s&&await this.hass.callService("switch",e,{entity_id:s}),i&&await this.hass.callService("switch",e,{entity_id:i})}catch(t){this._showServiceError(t.message||"Regenschutz-Umschaltung fehlgeschlagen")}}_renderSchedule(t){const e=this._entities,s=e.tasks||[],i=e.task_areas||[],r=dt(this.hass,e.sensors.non_work_hours),n=pt(this.hass,e.sensors.task_duration),o=e.buttons.sync_schedule;return 0!==s.length||r||null!==n?D`
       <div class="section">
         <div class="section-title">
           <ha-icon icon="mdi:calendar-clock"></ha-icon> Zeitplan
-          ${o?W`
+          ${o?D`
                 <button
                   class="sync-btn ${this._syncingSchedule?"syncing":""}"
                   @click=${()=>this._handleSync("schedule")}
@@ -318,48 +325,50 @@ const w=globalThis,x=t=>t,k=w.trustedTypes,A=k?k.createPolicy("lit-html",{create
               `:""}
         </div>
 
-        ${s.length>0?W`
-              <div class="task-buttons">
-                ${s.map(t=>{const e=this.hass.states[t];if(!e)return"";const s=(e.attributes?.friendly_name||t).replace(/^.*?\s+/,"");return W`
+        ${s.length>0?D`
+              <div class="task-list">
+                ${s.map(t=>{const e=this.hass.states[t];if(!e)return"";const s=e.attributes?.friendly_name||t,i=s.replace(/^[A-Za-z]+-[A-Z0-9]+\s+/,"")||s.replace(/^.*?\s+/,""),r=null!==n?` · ~${Math.ceil(n)} Min`:"";return D`
                     <button class="task-btn" @click=${()=>this._pressButton(t)}>
                       <ha-icon icon="mdi:play-circle-outline"></ha-icon>
-                      ${s}
+                      <span class="task-label">${i}${r}</span>
                     </button>
                   `})}
               </div>
             `:""}
 
-        ${i||n||r?W`
-              <div class="schedule-info">
-                ${i&&"unknown"!==i&&"unavailable"!==i?W`<div class="schedule-row">
-                      <ha-icon icon="mdi:clock-remove-outline"></ha-icon>
-                      <span>Arbeitsfreie Zeit: ${i}</span>
-                    </div>`:""}
-                ${n&&"unknown"!==n&&"unavailable"!==n?W`<div class="schedule-row">
-                      <ha-icon icon="mdi:timer-outline"></ha-icon>
-                      <span>Aufgabendauer: ${this._formatMinutes(parseFloat(n))}</span>
-                    </div>`:""}
-                ${r&&"unknown"!==r&&"unavailable"!==r?W`<div class="schedule-row">
-                      <ha-icon icon="mdi:vector-square"></ha-icon>
-                      <span>Aufgabenbereich: ${r} m²</span>
-                    </div>`:""}
+        ${i.length>0?D`
+              <div class="task-area-status">
+                ${i.map(t=>{const e=this.hass.states[t];if(!e||"unknown"===e.state||"unavailable"===e.state)return"";const s=(e.attributes?.friendly_name||t).replace(/^[A-Za-z]+-[A-Z0-9]+\s+/,"").replace(/^Aufgabenbereich\s*/,"")||"Bereich";return D`
+                    <span class="task-area-pill ${this._taskAreaClass(e.state)}">
+                      ${s}: ${this._taskAreaLabel(e.state)}
+                    </span>
+                  `})}
               </div>
             `:""}
 
-        ${t?W`
+        ${r&&"unknown"!==r&&"unavailable"!==r?D`
+              <div class="schedule-info">
+                <div class="schedule-row">
+                  <ha-icon icon="mdi:clock-remove-outline"></ha-icon>
+                  <span>Ruhezeit: ${this._formatNonWorkHours(r)}</span>
+                </div>
+              </div>
+            `:""}
+
+        ${t?D`
               <div class="schedule-hint">
                 <ha-icon icon="mdi:information-outline"></ha-icon>
-                Komplexe Zeitpläne über HA-Automationen einrichten
+                Weitere Mähpläne können in der Mammotion App erstellt werden.
               </div>
             `:""}
       </div>
-    `:""}_renderNumberSlider(t,e,s){if(!t||!this.hass.states[t])return"";const i=this.hass.states[t],n=parseFloat(i.state),r=i.attributes?.min,o=i.attributes?.max,a=r??0,c=o??100,l=i.attributes?.step??1;if(a>=c||0===c||void 0===r&&void 0===o&&0===n){const i=t.replace(/^number\./,""),r=this.hass.states[`sensor.${i}`],o=r?parseFloat(r.state):n,a=r?.attributes?.unit_of_measurement||s,c={schnitthohe:[15,100],aufgabengeschwindigkeit:[.2,1.2],wegabstand:[5,35]},d=t.split("_").pop(),[h,p]=c[d]||[0,100];return W`
+    `:""}_taskAreaClass(t){const e=t.toUpperCase();return"MOWING"===e?"active":"COMPLETED"===e?"completed":"WAITING"===e?"waiting":"other"}_taskAreaLabel(t){return{MOWING:"Mäht",WAITING:"Wartet",COMPLETED:"Fertig",NOT_STARTED:"Nicht gestartet"}[t.toUpperCase()]||t}_formatNonWorkHours(t){return t&&"Not set"!==t?t.replace(/(\d{1,2}:\d{2})(am|pm)/gi,(t,e,s)=>{const[i,r]=e.split(":");let n=parseInt(i,10);return"pm"===s.toLowerCase()&&12!==n&&(n+=12),"am"===s.toLowerCase()&&12===n&&(n=0),`${String(n).padStart(2,"0")}:${r}`}):"Keine Ruhezeit konfiguriert"}_renderNumberSlider(t,e,s){if(!t||!this.hass.states[t])return"";const i=this.hass.states[t],r=parseFloat(i.state),n=i.attributes?.min,o=i.attributes?.max,a=n??0,c=o??100,l=i.attributes?.step??1;if(a>=c||0===c||void 0===n&&void 0===o&&0===r){const i=t.replace(/^number\./,""),n=this.hass.states[`sensor.${i}`],o=n?parseFloat(n.state):r,a=n?.attributes?.unit_of_measurement||s,c={schnitthohe:[15,100],aufgabengeschwindigkeit:[.2,1.2],wegabstand:[5,35]},h=t.split("_").pop(),[d,p]=c[h]||[0,100];return D`
         <div class="slider-row disabled">
           <label>${e}</label>
-          <input type="range" min=${h} max=${p} step=${l} .value=${String(isNaN(o)?0:o)} disabled />
+          <input type="range" min=${d} max=${p} step=${l} .value=${String(isNaN(o)?0:o)} disabled />
           <span class="slider-val">${isNaN(o)?"?":o} ${a} <ha-icon icon="mdi:lock" style="--mdc-icon-size:14px"></ha-icon></span>
         </div>
-      `}return W`
+      `}return D`
       <div class="slider-row">
         <label>${e}</label>
         <input
@@ -367,24 +376,24 @@ const w=globalThis,x=t=>t,k=w.trustedTypes,A=k?k.createPolicy("lit-html",{create
           min=${a}
           max=${c}
           step=${l}
-          .value=${String(n)}
+          .value=${String(r)}
           @change=${e=>this._setNumber(t,parseFloat(e.target.value))}
         />
-        <span class="slider-val">${n} ${s}</span>
+        <span class="slider-val">${r} ${s}</span>
       </div>
-    `}_renderSelect(t,e){if(!t||!this.hass.states[t])return"";const s=this.hass.states[t],i=s.attributes?.options||[],n=s.state;return W`
+    `}_renderSelect(t,e){if(!t||!this.hass.states[t])return"";const s=this.hass.states[t],i=s.attributes?.options||[],r=s.state;return D`
       <div class="select-row">
         <label>${e}</label>
         <select @change=${e=>this._setSelect(t,e.target.value)}>
-          ${i.map(t=>{return W`<option value=${t} ?selected=${t===n}>${e=t,dt[e]||e}</option>`;var e})}
+          ${i.map(t=>{return D`<option value=${t} ?selected=${t===r}>${e=t,ht[e]||e}</option>`;var e})}
         </select>
       </div>
-    `}_renderToggle(t,e){if(!t||!this.hass.states[t])return"";const s="on"===this.hass.states[t].state;return W`
+    `}_renderToggle(t,e){if(!t||!this.hass.states[t])return"";const s="on"===this.hass.states[t].state;return D`
       <div class="toggle-row">
         <span>${e}</span>
         <ha-switch .checked=${s} @change=${()=>this._toggleSwitch(t)}></ha-switch>
       </div>
-    `}async _callService(t,e){try{await this.hass.callService(t,e,{entity_id:this._config.entity})}catch(t){this._showServiceError(t.message||"Service-Aufruf fehlgeschlagen")}}async _pressButton(t){if(t)try{await this.hass.callService("button","press",{entity_id:t})}catch(t){this._showServiceError(t.message||"Button-Aufruf fehlgeschlagen")}}_handleSync(t){const e="map"===t?this._entities.buttons.sync_map:this._entities.buttons.sync_schedule;e&&(this._pressButton(e),"map"===t?this._syncingMap=!0:this._syncingSchedule=!0,this.requestUpdate(),setTimeout(()=>{"map"===t?this._syncingMap=!1:this._syncingSchedule=!1,this.requestUpdate()},3e3))}async _toggleSwitch(t){try{await this.hass.callService("switch","toggle",{entity_id:t})}catch(t){this._showServiceError(t.message||"Switch-Aufruf fehlgeschlagen")}}async _setNumber(t,e){try{await this.hass.callService("number","set_value",{entity_id:t,value:e})}catch(t){this._showServiceError(t.message||"Wert konnte nicht gesetzt werden")}}async _setSelect(t,e){try{await this.hass.callService("select","select_option",{entity_id:t,option:e})}catch(t){this._showServiceError(t.message||"Auswahl fehlgeschlagen")}}_showServiceError(t){this._serviceError=t,this.requestUpdate(),setTimeout(()=>{this._serviceError=null,this.requestUpdate()},4e3)}shouldUpdate(t){if(!t.has("hass"))return!0;const e=t.get("hass");if(!e||!this._entities)return!0;return this._getAllEntityIds().some(t=>e.states[t]!==this.hass.states[t])}_getAllEntityIds(){const t=this._entities;if(!t)return[];const e=[t.lawn_mower];t.camera&&e.push(t.camera),t.device_tracker&&e.push(t.device_tracker),t.charging&&e.push(t.charging);for(const s of["sensors","buttons","selects","numbers","switches"])t[s]&&e.push(...Object.values(t[s]));return t.areas&&e.push(...t.areas),t.tasks&&e.push(...t.tasks),e}_formatMinutes(t){if(null===t)return"";const e=Math.floor(t/60),s=Math.round(t%60);return e>0?`${e}h ${s}m`:`${s}m`}_signalIcon(t){return t>-50?"mdi:wifi-strength-4":t>-60?"mdi:wifi-strength-3":t>-70?"mdi:wifi-strength-2":t>-80?"mdi:wifi-strength-1":"mdi:wifi-strength-alert-outline"}_countEntities(){if(!this._entities)return 0;let t=1;this._entities.camera&&t++,this._entities.device_tracker&&t++,this._entities.charging&&t++;for(const e of["sensors","buttons","selects","numbers","switches"])t+=Object.keys(this._entities[e]||{}).length;return t+=(this._entities.areas||[]).length,t+=(this._entities.tasks||[]).length,t}static get styles(){return r`
+    `}async _callService(t,e){try{await this.hass.callService(t,e,{entity_id:this._config.entity})}catch(t){this._showServiceError(t.message||"Service-Aufruf fehlgeschlagen")}}async _pressButton(t){if(t)try{await this.hass.callService("button","press",{entity_id:t})}catch(t){this._showServiceError(t.message||"Button-Aufruf fehlgeschlagen")}}_handleSync(t){const e="map"===t?this._entities.buttons.sync_map:this._entities.buttons.sync_schedule;e&&(this._pressButton(e),"map"===t?this._syncingMap=!0:this._syncingSchedule=!0,this.requestUpdate(),setTimeout(()=>{"map"===t?this._syncingMap=!1:this._syncingSchedule=!1,this.requestUpdate()},3e3))}async _toggleSwitch(t){try{await this.hass.callService("switch","toggle",{entity_id:t})}catch(t){this._showServiceError(t.message||"Switch-Aufruf fehlgeschlagen")}}async _setNumber(t,e){try{await this.hass.callService("number","set_value",{entity_id:t,value:e})}catch(t){this._showServiceError(t.message||"Wert konnte nicht gesetzt werden")}}async _setSelect(t,e){try{await this.hass.callService("select","select_option",{entity_id:t,option:e})}catch(t){this._showServiceError(t.message||"Auswahl fehlgeschlagen")}}_showServiceError(t){this._serviceError=t,this.requestUpdate(),setTimeout(()=>{this._serviceError=null,this.requestUpdate()},4e3)}shouldUpdate(t){if(!t.has("hass"))return!0;const e=t.get("hass");if(!e||!this._entities)return!0;return this._getAllEntityIds().some(t=>e.states[t]!==this.hass.states[t])}_getAllEntityIds(){const t=this._entities;if(!t)return[];const e=[t.lawn_mower];t.camera&&e.push(t.camera),t.device_tracker&&e.push(t.device_tracker),t.charging&&e.push(t.charging);for(const s of["sensors","buttons","selects","numbers","switches"])t[s]&&e.push(...Object.values(t[s]));return t.areas&&e.push(...t.areas),t.tasks&&e.push(...t.tasks),t.task_areas&&e.push(...t.task_areas),e}_formatMinutes(t){if(null===t)return"";const e=Math.floor(t/60),s=Math.round(t%60);return e>0?`${e}h ${s}m`:`${s}m`}_signalIcon(t){return t>-50?"mdi:wifi-strength-4":t>-60?"mdi:wifi-strength-3":t>-70?"mdi:wifi-strength-2":t>-80?"mdi:wifi-strength-1":"mdi:wifi-strength-alert-outline"}_countEntities(){if(!this._entities)return 0;let t=1;this._entities.camera&&t++,this._entities.device_tracker&&t++,this._entities.charging&&t++;for(const e of["sensors","buttons","selects","numbers","switches"])t+=Object.keys(this._entities[e]||{}).length;return t+=(this._entities.areas||[]).length,t+=(this._entities.tasks||[]).length,t+=(this._entities.task_areas||[]).length,t}static get styles(){return n`
       :host {
         --mmc-spacing: 12px;
         --mmc-radius: 12px;
@@ -824,7 +833,7 @@ const w=globalThis,x=t=>t,k=w.trustedTypes,A=k?k.createPolicy("lit-html",{create
       }
 
       /* Schedule */
-      .task-buttons {
+      .task-list {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
@@ -853,6 +862,50 @@ const w=globalThis,x=t=>t,k=w.trustedTypes,A=k?k.createPolicy("lit-html",{create
       .task-btn ha-icon {
         --mdc-icon-size: 18px;
         color: var(--state-active-color, #4caf50);
+        flex-shrink: 0;
+      }
+
+      .task-label {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* Task Area Status Pills */
+      .task-area-status {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 8px;
+      }
+
+      .task-area-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500;
+      }
+
+      .task-area-pill.active {
+        background: var(--state-active-color, #4caf50);
+        color: white;
+      }
+
+      .task-area-pill.waiting {
+        background: var(--divider-color, #e0e0e0);
+        color: var(--secondary-text-color);
+      }
+
+      .task-area-pill.completed {
+        background: var(--info-color, #2196f3);
+        color: white;
+      }
+
+      .task-area-pill.other {
+        background: var(--warning-color, #ff9800);
+        color: white;
       }
 
       .schedule-info {
@@ -915,7 +968,7 @@ const w=globalThis,x=t=>t,k=w.trustedTypes,A=k?k.createPolicy("lit-html",{create
           flex-direction: column;
         }
 
-        .task-buttons {
+        .task-list {
           flex-direction: column;
         }
 

@@ -2,7 +2,7 @@ import { LitElement, html, css } from "lit";
 import { discoverEntities, getStateValue, getNumericState, translateOption } from "./entity-discovery.js";
 import "./editor.js";
 
-const CARD_VERSION = "0.4.0";
+const CARD_VERSION = "0.5.0";
 
 class MammotionCard extends LitElement {
   static get properties() {
@@ -403,23 +403,52 @@ class MammotionCard extends LitElement {
           <ha-icon icon="mdi:tune"></ha-icon> Gerätesteuerung
         </div>
         <div class="device-toggles">
-          ${this._renderToggle(ents.switches.rain_mowing, "Regenerkennung (Mähen)")}
-          ${this._renderToggle(ents.switches.rain_robot, "Regenerkennung (Roboter)")}
+          ${this._renderCombinedRainToggle()}
           ${this._renderToggle(ents.switches.side_led, "Seitenlicht")}
         </div>
       </div>
     `;
   }
 
+  _renderCombinedRainToggle() {
+    const ent1 = this._entities?.switches?.rain_mowing;
+    const ent2 = this._entities?.switches?.rain_robot;
+    if (!ent1 && !ent2) return "";
+    const isOn =
+      (ent1 && this.hass.states[ent1]?.state === "on") ||
+      (ent2 && this.hass.states[ent2]?.state === "on");
+    return html`
+      <div class="toggle-row">
+        <span><ha-icon icon="mdi:weather-rainy" style="--mdc-icon-size:18px; margin-right:4px; vertical-align:middle; color:var(--secondary-text-color)"></ha-icon>Regenschutz</span>
+        <ha-switch
+          .checked=${isOn}
+          @change=${() => this._toggleRainProtection(!isOn)}
+        ></ha-switch>
+      </div>
+    `;
+  }
+
+  async _toggleRainProtection(turnOn) {
+    const service = turnOn ? "turn_on" : "turn_off";
+    const ent1 = this._entities?.switches?.rain_mowing;
+    const ent2 = this._entities?.switches?.rain_robot;
+    try {
+      if (ent1) await this.hass.callService("switch", service, { entity_id: ent1 });
+      if (ent2) await this.hass.callService("switch", service, { entity_id: ent2 });
+    } catch (e) {
+      this._showServiceError(e.message || "Regenschutz-Umschaltung fehlgeschlagen");
+    }
+  }
+
   _renderSchedule(isExpert) {
     const ents = this._entities;
     const tasks = ents.tasks || [];
+    const taskAreas = ents.task_areas || [];
     const nonWorkHours = getStateValue(this.hass, ents.sensors.non_work_hours);
-    const taskDuration = getStateValue(this.hass, ents.sensors.task_duration);
-    const taskArea = getStateValue(this.hass, ents.sensors.task_area);
+    const taskDuration = getNumericState(this.hass, ents.sensors.task_duration);
     const syncScheduleEntity = ents.buttons.sync_schedule;
 
-    if (tasks.length === 0 && !nonWorkHours && !taskDuration) return "";
+    if (tasks.length === 0 && !nonWorkHours && taskDuration === null) return "";
 
     return html`
       <div class="section">
@@ -446,16 +475,18 @@ class MammotionCard extends LitElement {
 
         ${tasks.length > 0
           ? html`
-              <div class="task-buttons">
+              <div class="task-list">
                 ${tasks.map((eid) => {
                   const state = this.hass.states[eid];
                   if (!state) return "";
                   const rawName = state.attributes?.friendly_name || eid;
-                  const name = rawName.replace(/^.*?\s+/, "");
+                  // Remove device prefix: "Luba-MBGZ9JC5 Normal 2 Tage" → "Normal 2 Tage"
+                  const name = rawName.replace(/^[A-Za-z]+-[A-Z0-9]+\s+/, "") || rawName.replace(/^.*?\s+/, "");
+                  const durationStr = taskDuration !== null ? ` · ~${Math.ceil(taskDuration)} Min` : "";
                   return html`
                     <button class="task-btn" @click=${() => this._pressButton(eid)}>
                       <ha-icon icon="mdi:play-circle-outline"></ha-icon>
-                      ${name}
+                      <span class="task-label">${name}${durationStr}</span>
                     </button>
                   `;
                 })}
@@ -463,27 +494,31 @@ class MammotionCard extends LitElement {
             `
           : ""}
 
-        ${nonWorkHours || taskDuration || taskArea
+        ${taskAreas.length > 0
+          ? html`
+              <div class="task-area-status">
+                ${taskAreas.map((eid) => {
+                  const state = this.hass.states[eid];
+                  if (!state || state.state === "unknown" || state.state === "unavailable") return "";
+                  const rawName = state.attributes?.friendly_name || eid;
+                  const label = rawName.replace(/^[A-Za-z]+-[A-Z0-9]+\s+/, "").replace(/^Aufgabenbereich\s*/, "") || "Bereich";
+                  return html`
+                    <span class="task-area-pill ${this._taskAreaClass(state.state)}">
+                      ${label}: ${this._taskAreaLabel(state.state)}
+                    </span>
+                  `;
+                })}
+              </div>
+            `
+          : ""}
+
+        ${nonWorkHours && nonWorkHours !== "unknown" && nonWorkHours !== "unavailable"
           ? html`
               <div class="schedule-info">
-                ${nonWorkHours && nonWorkHours !== "unknown" && nonWorkHours !== "unavailable"
-                  ? html`<div class="schedule-row">
-                      <ha-icon icon="mdi:clock-remove-outline"></ha-icon>
-                      <span>Arbeitsfreie Zeit: ${nonWorkHours}</span>
-                    </div>`
-                  : ""}
-                ${taskDuration && taskDuration !== "unknown" && taskDuration !== "unavailable"
-                  ? html`<div class="schedule-row">
-                      <ha-icon icon="mdi:timer-outline"></ha-icon>
-                      <span>Aufgabendauer: ${this._formatMinutes(parseFloat(taskDuration))}</span>
-                    </div>`
-                  : ""}
-                ${taskArea && taskArea !== "unknown" && taskArea !== "unavailable"
-                  ? html`<div class="schedule-row">
-                      <ha-icon icon="mdi:vector-square"></ha-icon>
-                      <span>Aufgabenbereich: ${taskArea} m²</span>
-                    </div>`
-                  : ""}
+                <div class="schedule-row">
+                  <ha-icon icon="mdi:clock-remove-outline"></ha-icon>
+                  <span>Ruhezeit: ${this._formatNonWorkHours(nonWorkHours)}</span>
+                </div>
               </div>
             `
           : ""}
@@ -492,12 +527,42 @@ class MammotionCard extends LitElement {
           ? html`
               <div class="schedule-hint">
                 <ha-icon icon="mdi:information-outline"></ha-icon>
-                Komplexe Zeitpläne über HA-Automationen einrichten
+                Weitere Mähpläne können in der Mammotion App erstellt werden.
               </div>
             `
           : ""}
       </div>
     `;
+  }
+
+  _taskAreaClass(state) {
+    const s = state.toUpperCase();
+    if (s === "MOWING") return "active";
+    if (s === "COMPLETED") return "completed";
+    if (s === "WAITING") return "waiting";
+    return "other";
+  }
+
+  _taskAreaLabel(state) {
+    const labels = {
+      MOWING: "Mäht",
+      WAITING: "Wartet",
+      COMPLETED: "Fertig",
+      NOT_STARTED: "Nicht gestartet",
+    };
+    return labels[state.toUpperCase()] || state;
+  }
+
+  _formatNonWorkHours(value) {
+    if (!value || value === "Not set") return "Keine Ruhezeit konfiguriert";
+    // Convert "06:26am - 08:10pm" → "06:26 - 20:10"
+    return value.replace(/(\d{1,2}:\d{2})(am|pm)/gi, (_, time, ampm) => {
+      const [h, m] = time.split(":");
+      let hour = parseInt(h, 10);
+      if (ampm.toLowerCase() === "pm" && hour !== 12) hour += 12;
+      if (ampm.toLowerCase() === "am" && hour === 12) hour = 0;
+      return `${String(hour).padStart(2, "0")}:${m}`;
+    });
   }
 
   _renderNumberSlider(entityId, label, unit) {
@@ -686,6 +751,7 @@ class MammotionCard extends LitElement {
     }
     if (ents.areas) ids.push(...ents.areas);
     if (ents.tasks) ids.push(...ents.tasks);
+    if (ents.task_areas) ids.push(...ents.task_areas);
     return ids;
   }
 
@@ -717,6 +783,7 @@ class MammotionCard extends LitElement {
     }
     count += (this._entities.areas || []).length;
     count += (this._entities.tasks || []).length;
+    count += (this._entities.task_areas || []).length;
     return count;
   }
 
@@ -1161,7 +1228,7 @@ class MammotionCard extends LitElement {
       }
 
       /* Schedule */
-      .task-buttons {
+      .task-list {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
@@ -1190,6 +1257,50 @@ class MammotionCard extends LitElement {
       .task-btn ha-icon {
         --mdc-icon-size: 18px;
         color: var(--state-active-color, #4caf50);
+        flex-shrink: 0;
+      }
+
+      .task-label {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* Task Area Status Pills */
+      .task-area-status {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 8px;
+      }
+
+      .task-area-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500;
+      }
+
+      .task-area-pill.active {
+        background: var(--state-active-color, #4caf50);
+        color: white;
+      }
+
+      .task-area-pill.waiting {
+        background: var(--divider-color, #e0e0e0);
+        color: var(--secondary-text-color);
+      }
+
+      .task-area-pill.completed {
+        background: var(--info-color, #2196f3);
+        color: white;
+      }
+
+      .task-area-pill.other {
+        background: var(--warning-color, #ff9800);
+        color: white;
       }
 
       .schedule-info {
@@ -1252,7 +1363,7 @@ class MammotionCard extends LitElement {
           flex-direction: column;
         }
 
-        .task-buttons {
+        .task-list {
           flex-direction: column;
         }
 

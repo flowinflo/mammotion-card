@@ -53,3 +53,10 @@ Diese koennen manuell geloescht werden unter:
 **Einstellungen > Geraete & Dienste > Mammotion > [Geraet] > Entities** (Zahnrad-Icon) > Nicht verfuegbare Entities loeschen.
 
 Die Card zeigt unavailable Bereiche ausgegraut an — sie stören den Betrieb nicht.
+
+### Known Limitations (Mammotion-HA Integration)
+
+- **Area switches:** After defining multiple zones in the Mammotion app, only some may appear as switch entities in HA. Orphaned area switches may be recreated on each map sync. This is an integration issue, not a card issue.
+- **Task buttons:** Only 1 task button is created per device, even when multiple mowing plans are defined in the Mammotion app. Plan names sync correctly.
+- **Rain detection:** The app shows one "Rain Protection" toggle, but the integration exposes two separate switches. This card combines them into a single toggle for better UX.
+- **Blade height:** The number entity for blade height may report min=0/max=0 (broken). The card falls back to the sensor value and displays it as read-only.

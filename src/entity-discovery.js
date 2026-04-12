@@ -101,6 +101,7 @@ export function discoverEntities(hass, lawnMowerEntityId) {
     switches: {},
     areas: [],
     tasks: [],
+    task_areas: [],
   };
 
   // Find device_tracker (has doubled prefix)
@@ -144,9 +145,19 @@ export function discoverEntities(hass, lawnMowerEntityId) {
     if (
       eid.startsWith(`button.${prefix}_`) &&
       (eid.includes("_aufgabe_") || eid.includes("_task_")) &&
-      !eid.includes("_abbrechen")
+      !eid.includes("_abbrechen") &&
+      !eid.includes("_synchronisiere")
     ) {
       resolved.tasks.push(eid);
+    }
+  }
+
+  // Discover task area sensors (sensor.*_aufgabenbereich_*)
+  for (const eid of Object.keys(hass.states)) {
+    if (
+      eid.startsWith(`sensor.${prefix}_aufgabenbereich_`)
+    ) {
+      resolved.task_areas.push(eid);
     }
   }
 
