@@ -2,7 +2,7 @@ import { LitElement, html, css } from "lit";
 import { discoverEntities, getStateValue, getNumericState, translateOption } from "./entity-discovery.js";
 import "./editor.js";
 
-const CARD_VERSION = "0.6.0";
+const CARD_VERSION = "0.7.0";
 
 class MammotionCard extends LitElement {
   static get properties() {
@@ -31,12 +31,10 @@ class MammotionCard extends LitElement {
       modules: {
         status: true,
         controls: true,
-        map: true,
+        map_and_zones: true,
         camera: true,
-        mowing_config: true,
-        zones: true,
+        settings: true,
         schedule: true,
-        device: true,
       },
     };
   }
@@ -45,27 +43,38 @@ class MammotionCard extends LitElement {
     if (!config.entity) {
       throw new Error("Please define a lawn_mower entity");
     }
+
+    // Default modules (new combined keys)
+    let modules = {
+      status: true,
+      controls: true,
+      map_and_zones: true,
+      camera: true,
+      settings: true,
+      schedule: true,
+    };
+
+    if (config.modules) {
+      modules = { ...modules, ...config.modules };
+      // Backward compat: map old keys → new combined keys
+      if ("map" in config.modules || "zones" in config.modules) {
+        modules.map_and_zones = config.modules.map !== false || config.modules.zones !== false;
+      }
+      if ("mowing_config" in config.modules || "device" in config.modules) {
+        modules.settings = config.modules.mowing_config !== false || config.modules.device !== false;
+      }
+    }
+
     this._config = {
       mode: "family",
-      modules: {
-        status: true,
-        controls: true,
-        map: true,
-        camera: true,
-        mowing_config: true,
-        zones: true,
-        schedule: true,
-        device: true,
-      },
       ...config,
+      modules,
     };
     this._entities = null;
-    // Initialize accordion state based on mode
+
     const isExpert = this._config.mode === "expert";
     this._openSections = new Set(
-      isExpert
-        ? ["map", "zones", "mowing"]
-        : ["map", "zones"]
+      isExpert ? ["map_and_zones", "settings"] : ["map_and_zones"]
     );
   }
 
@@ -145,8 +154,7 @@ class MammotionCard extends LitElement {
     } else {
       this._openSections.add(section);
     }
-    // Invalidate Leaflet size when map section opens
-    if (section === "map" && this._openSections.has("map") && this._leafletMap) {
+    if (section === "map_and_zones" && this._openSections.has("map_and_zones") && this._leafletMap) {
       setTimeout(() => this._leafletMap.invalidateSize(), 350);
     }
     this.requestUpdate();
@@ -203,7 +211,6 @@ class MammotionCard extends LitElement {
     const isExpert = this._config.mode === "expert";
     const modules = this._config.modules || {};
 
-    // Sync buttons for section headers
     const syncMapBtn = this._entities.buttons.sync_map
       ? html`<button
           class="sync-btn ${this._syncingMap ? "syncing" : ""}"
@@ -228,12 +235,10 @@ class MammotionCard extends LitElement {
         <div class="card-content">
           ${modules.status !== false ? this._renderStatus(name, state, battery, isCharging, isExpert) : ""}
           ${modules.controls !== false ? this._renderControls(state) : ""}
-          ${modules.map !== false ? this._renderSection("map", "mdi:map-marker-radius", "Karte", this._renderMapContent(state)) : ""}
+          ${modules.map_and_zones !== false ? this._renderSection("map_and_zones", "mdi:map-marker-radius", "Karte & Bereiche", this._renderMapAndZonesContent(state), syncMapBtn) : ""}
           ${modules.camera !== false && this._entities.camera ? this._renderSection("camera", "mdi:camera", "Kamera", this._renderCameraContent()) : ""}
-          ${modules.zones !== false ? this._renderSection("zones", "mdi:vector-square", "Bereiche", this._renderZonesContent(), syncMapBtn) : ""}
-          ${modules.mowing_config && isExpert ? this._renderSection("mowing", "mdi:cog", "Mäh-Einstellungen", this._renderMowingContent()) : ""}
+          ${modules.settings !== false ? this._renderSection("settings", "mdi:cog", "Einstellungen", this._renderSettingsContent()) : ""}
           ${modules.schedule !== false ? this._renderSection("schedule", "mdi:calendar-clock", "Zeitplan", this._renderScheduleContent(isExpert), syncScheduleBtn) : ""}
-          ${modules.device !== false && isExpert ? this._renderSection("device", "mdi:tune", "Gerätesteuerung", this._renderDeviceContent()) : ""}
 
           ${this._serviceError
             ? html`<div class="service-error">
@@ -250,7 +255,7 @@ class MammotionCard extends LitElement {
     `;
   }
 
-  // --- Module renderers (content only, no section wrapper) ---
+  // --- Module renderers ---
 
   _renderStatus(name, state, battery, isCharging, isExpert) {
     const progress = getNumericState(this.hass, this._entities.sensors.progress);
@@ -383,35 +388,83 @@ class MammotionCard extends LitElement {
     `;
   }
 
-  _renderMapContent(state) {
+  // Combined: Map + Zones
+  _renderMapAndZonesContent(state) {
     const lat = getNumericState(this.hass, this._entities.sensors.latitude);
     const lng = getNumericState(this.hass, this._entities.sensors.longitude);
     const sats = getNumericState(this.hass, this._entities.sensors.satellites_robot);
-
-    if (lat === null || lng === null) {
-      return html`<div class="map-placeholder">Keine GPS-Position verfügbar</div>`;
-    }
+    const areas = this._entities.areas;
 
     return html`
-      <div id="mmc-map" class="map-container"></div>
-      ${sats !== null ? html`<div class="map-info"><ha-icon icon="mdi:satellite-variant" style="--mdc-icon-size:14px"></ha-icon> ${sats} Satelliten · ${lat.toFixed(5)}, ${lng.toFixed(5)}</div>` : ""}
+      ${lat !== null && lng !== null
+        ? html`
+            <div id="mmc-map" class="map-container"></div>
+            ${sats !== null
+              ? html`<div class="map-info"><ha-icon icon="mdi:satellite-variant" style="--mdc-icon-size:14px"></ha-icon> ${sats} Satelliten · ${lat.toFixed(5)}, ${lng.toFixed(5)}</div>`
+              : ""}
+          `
+        : html`<div class="map-placeholder">Keine GPS-Position verfügbar</div>`}
+
+      ${areas && areas.length > 0
+        ? html`
+            <div class="zone-list">
+              ${areas.map((eid) => {
+                const stateObj = this.hass.states[eid];
+                const isUnavailable = !stateObj || stateObj.state === "unavailable";
+                const isOn = stateObj?.state === "on";
+
+                const rawName = stateObj?.attributes?.friendly_name || "";
+                let name;
+                if (rawName && rawName !== eid) {
+                  name = rawName.replace(/^[A-Za-z]+-[A-Z0-9]+\s+/, "");
+                  if (name === rawName) name = rawName.replace(/^.*?\s+(Bereich)/i, "$1");
+                } else {
+                  const match = eid.match(/bereich_(\w+)$/);
+                  name = match ? `Bereich ${match[1].replace(/_/g, ".")}` : "Bereich";
+                }
+
+                return html`
+                  <div class="zone-row ${isUnavailable ? "unavailable" : ""}">
+                    <span class="zone-name">
+                      ${name}
+                      ${isUnavailable
+                        ? html`<span class="unavailable-hint">(nicht verfügbar)</span>`
+                        : ""}
+                    </span>
+                    <ha-switch
+                      .checked=${isOn}
+                      .disabled=${isUnavailable}
+                      @change=${() => !isUnavailable && this._toggleSwitch(eid)}
+                    ></ha-switch>
+                  </div>
+                `;
+              })}
+            </div>
+          `
+        : html`<div class="empty-hint">Keine Bereiche gefunden</div>`}
     `;
   }
 
+  // Camera with auth token fix
   _renderCameraContent() {
     const cameraEntity = this._entities.camera;
     if (!cameraEntity || !this.hass.states[cameraEntity]) {
       return html`<div class="map-placeholder">Keine Kamera verfügbar</div>`;
     }
 
-    // Only render stream when section is open (saves bandwidth)
+    // Lazy load: only render image when section is open
     if (!this._isSectionOpen("camera")) return "";
 
     const stateObj = this.hass.states[cameraEntity];
+    const token = stateObj.attributes?.access_token;
+    const imgUrl = token
+      ? `/api/camera_proxy/${cameraEntity}?token=${token}`
+      : `/api/camera_proxy/${cameraEntity}`;
+
     return html`
-      <div class="camera-container">
+      <div class="camera-container" @click=${() => this._showMoreInfo(cameraEntity)}>
         <img
-          src="/api/camera_proxy/${cameraEntity}"
+          src=${imgUrl}
           alt="Mäher-Kamera"
           class="camera-image"
           @error=${(e) => { e.target.style.display = "none"; }}
@@ -420,48 +473,8 @@ class MammotionCard extends LitElement {
     `;
   }
 
-  _renderZonesContent() {
-    const areas = this._entities.areas;
-    if (!areas || areas.length === 0) return html`<div class="empty-hint">Keine Bereiche gefunden</div>`;
-
-    return html`
-      <div class="zone-list">
-        ${areas.map((eid) => {
-          const state = this.hass.states[eid];
-          const isUnavailable = !state || state.state === "unavailable";
-          const isOn = state?.state === "on";
-
-          const rawName = state?.attributes?.friendly_name || "";
-          let name;
-          if (rawName && rawName !== eid) {
-            name = rawName.replace(/^[A-Za-z]+-[A-Z0-9]+\s+/, "");
-            if (name === rawName) name = rawName.replace(/^.*?\s+(Bereich)/i, "$1");
-          } else {
-            const match = eid.match(/bereich_(\w+)$/);
-            name = match ? `Bereich ${match[1].replace(/_/g, ".")}` : "Bereich";
-          }
-
-          return html`
-            <div class="zone-row ${isUnavailable ? "unavailable" : ""}">
-              <span class="zone-name">
-                ${name}
-                ${isUnavailable
-                  ? html`<span class="unavailable-hint">(nicht verfügbar)</span>`
-                  : ""}
-              </span>
-              <ha-switch
-                .checked=${isOn}
-                .disabled=${isUnavailable}
-                @change=${() => !isUnavailable && this._toggleSwitch(eid)}
-              ></ha-switch>
-            </div>
-          `;
-        })}
-      </div>
-    `;
-  }
-
-  _renderMowingContent() {
+  // Combined: Mowing settings + Device toggles
+  _renderSettingsContent() {
     const ents = this._entities;
     return html`
       <div class="config-grid">
@@ -471,6 +484,11 @@ class MammotionCard extends LitElement {
         ${this._renderSelect(ents.selects.nav_mode, "Navigation")}
         ${this._renderSelect(ents.selects.turn_mode, "Wendemodus")}
         ${this._renderSelect(ents.selects.obstacle_mode, "Hinderniserkennung")}
+      </div>
+      <div class="settings-divider"></div>
+      <div class="device-toggles">
+        ${this._renderCombinedRainToggle()}
+        ${this._renderToggle(ents.switches.side_led, "Seitenlicht")}
       </div>
     `;
   }
@@ -540,16 +558,6 @@ class MammotionCard extends LitElement {
             </div>
           `
         : ""}
-    `;
-  }
-
-  _renderDeviceContent() {
-    const ents = this._entities;
-    return html`
-      <div class="device-toggles">
-        ${this._renderCombinedRainToggle()}
-        ${this._renderToggle(ents.switches.side_led, "Seitenlicht")}
-      </div>
     `;
   }
 
@@ -740,6 +748,15 @@ class MammotionCard extends LitElement {
     }
   }
 
+  _showMoreInfo(entityId) {
+    const event = new CustomEvent("hass-more-info", {
+      detail: { entityId },
+      bubbles: true,
+      composed: true,
+    });
+    this.dispatchEvent(event);
+  }
+
   _showServiceError(msg) {
     this._serviceError = msg;
     this.requestUpdate();
@@ -774,10 +791,23 @@ class MammotionCard extends LitElement {
     if (!window.L || this._leafletMap) return;
 
     this._leafletMap = L.map(container, { zoomControl: true }).setView([lat, lng], 19);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 21,
-      attribution: "&copy; OSM",
-    }).addTo(this._leafletMap);
+
+    // Satellite (Esri) as default, street map as alternative
+    const satellite = L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      { maxZoom: 21, attribution: "Esri" }
+    );
+    const streets = L.tileLayer(
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      { maxZoom: 21, attribution: "&copy; OSM" }
+    );
+
+    satellite.addTo(this._leafletMap);
+    L.control.layers(
+      { "Satellit": satellite, "Straße": streets },
+      {},
+      { position: "topright" }
+    ).addTo(this._leafletMap);
 
     const color = this._markerColor(this._getMowerState());
     this._mapMarker = L.circleMarker([lat, lng], {
@@ -813,7 +843,7 @@ class MammotionCard extends LitElement {
 
   async updated(changedProps) {
     super.updated(changedProps);
-    if (this._isSectionOpen("map") && !this._leafletMap) {
+    if (this._isSectionOpen("map_and_zones") && !this._leafletMap) {
       await this._initMap();
     }
     if (this._leafletMap) {
@@ -1286,7 +1316,7 @@ class MammotionCard extends LitElement {
         height: 250px;
         border-radius: var(--mmc-radius);
         overflow: hidden;
-        margin-bottom: 4px;
+        margin-bottom: 8px;
         z-index: 0;
       }
 
@@ -1307,19 +1337,27 @@ class MammotionCard extends LitElement {
         gap: 4px;
         font-size: 11px;
         color: var(--secondary-text-color);
-        padding: 4px 0;
+        padding: 4px 0 8px 0;
       }
 
       /* Camera */
       .camera-container {
         border-radius: var(--mmc-radius);
         overflow: hidden;
+        cursor: pointer;
       }
 
       .camera-image {
         width: 100%;
         display: block;
         border-radius: var(--mmc-radius);
+      }
+
+      /* Settings Divider */
+      .settings-divider {
+        height: 1px;
+        background: var(--divider-color, #e0e0e0);
+        margin: 8px 0;
       }
 
       /* Config Grid */

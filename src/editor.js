@@ -3,13 +3,19 @@ import { LitElement, html, css } from "lit";
 const MODULES_DEFAULT = {
   status: true,
   controls: true,
-  mowing_config: true,
-  zones: true,
-  device: true,
-  maintenance: false,
-  map: false,
-  camera: false,
+  map_and_zones: true,
+  camera: true,
+  settings: true,
   schedule: true,
+};
+
+const MODULE_LABELS = {
+  status: "Status",
+  controls: "Steuerung",
+  map_and_zones: "Karte & Bereiche",
+  camera: "Kamera",
+  settings: "Einstellungen",
+  schedule: "Zeitplan",
 };
 
 export class MammotionCardEditor extends LitElement {
@@ -123,7 +129,7 @@ export class MammotionCardEditor extends LitElement {
                     .checked=${enabled}
                     @change=${this._moduleChanged}
                   />
-                  ${key}
+                  ${MODULE_LABELS[key] || key}
                 </label>
               `
             )}
