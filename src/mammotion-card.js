@@ -2,7 +2,7 @@ import { LitElement, html, css } from "lit";
 import { discoverEntities, getStateValue, getNumericState, translateOption } from "./entity-discovery.js";
 import "./editor.js";
 
-const CARD_VERSION = "0.3.0";
+const CARD_VERSION = "0.4.0";
 
 class MammotionCard extends LitElement {
   static get properties() {
@@ -10,6 +10,8 @@ class MammotionCard extends LitElement {
       hass: { attribute: false },
       _config: { state: true },
       _entities: { state: true },
+      _syncingMap: { state: true },
+      _syncingSchedule: { state: true },
     };
   }
 
@@ -304,25 +306,64 @@ class MammotionCard extends LitElement {
   _renderZones() {
     const areas = this._entities.areas;
     if (!areas || areas.length === 0) return "";
+    const syncMapEntity = this._entities.buttons.sync_map;
 
     return html`
       <div class="section">
         <div class="section-title">
           <ha-icon icon="mdi:vector-square"></ha-icon> Bereiche
+          ${syncMapEntity
+            ? html`
+                <button
+                  class="sync-btn ${this._syncingMap ? "syncing" : ""}"
+                  @click=${() => this._handleSync("map")}
+                  title="Karte synchronisieren"
+                  aria-label="Karte synchronisieren"
+                >
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      fill="currentColor"
+                      d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"
+                    />
+                  </svg>
+                </button>
+              `
+            : ""}
         </div>
         <div class="zone-list">
           ${areas.map((eid) => {
             const state = this.hass.states[eid];
-            if (!state) return "";
-            const rawName = state.attributes?.friendly_name || eid;
-            const name = rawName.replace(/^.*?\s+(Bereich\s+)/i, "$1");
-            const isOn = state.state === "on";
+            const isUnavailable = !state || state.state === "unavailable";
+            const isOn = state?.state === "on";
+
+            // Friendly name with device prefix removal
+            const rawName = state?.attributes?.friendly_name || "";
+            let name;
+            if (rawName && rawName !== eid) {
+              // Remove device prefix like "Luba-MBGZ9JC5 Bereich ..." → "Bereich ..."
+              name = rawName.replace(/^.*?\s+(Bereich)/i, "$1");
+            } else {
+              // Fallback: extract from entity_id
+              const match = eid.match(/bereich_area_(\d+(?:_\d+)?)$/);
+              name = match
+                ? `Bereich ${match[1].replace(/_/g, ".")}`
+                : "Bereich";
+            }
+
             return html`
-              <div class="zone-row">
-                <span class="zone-name">${name}</span>
+              <div class="zone-row ${isUnavailable ? "unavailable" : ""}">
+                <span class="zone-name">
+                  ${name}
+                  ${isUnavailable
+                    ? html`<span class="unavailable-hint"
+                        >(nicht verfügbar)</span
+                      >`
+                    : ""}
+                </span>
                 <ha-switch
                   .checked=${isOn}
-                  @change=${() => this._toggleSwitch(eid)}
+                  .disabled=${isUnavailable}
+                  @change=${() => !isUnavailable && this._toggleSwitch(eid)}
                 ></ha-switch>
               </div>
             `;
@@ -354,6 +395,7 @@ class MammotionCard extends LitElement {
     const nonWorkHours = getStateValue(this.hass, ents.sensors.non_work_hours);
     const taskDuration = getStateValue(this.hass, ents.sensors.task_duration);
     const taskArea = getStateValue(this.hass, ents.sensors.task_area);
+    const syncScheduleEntity = ents.buttons.sync_schedule;
 
     if (tasks.length === 0 && !nonWorkHours && !taskDuration) return "";
 
@@ -361,6 +403,23 @@ class MammotionCard extends LitElement {
       <div class="section">
         <div class="section-title">
           <ha-icon icon="mdi:calendar-clock"></ha-icon> Zeitplan
+          ${syncScheduleEntity
+            ? html`
+                <button
+                  class="sync-btn ${this._syncingSchedule ? "syncing" : ""}"
+                  @click=${() => this._handleSync("schedule")}
+                  title="Zeitplan synchronisieren"
+                  aria-label="Zeitplan synchronisieren"
+                >
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      fill="currentColor"
+                      d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"
+                    />
+                  </svg>
+                </button>
+              `
+            : ""}
         </div>
 
         ${tasks.length > 0
@@ -508,6 +567,32 @@ class MammotionCard extends LitElement {
   _pressButton(entityId) {
     if (!entityId) return;
     this.hass.callService("button", "press", { entity_id: entityId });
+  }
+
+  _handleSync(type) {
+    const entityId =
+      type === "map"
+        ? this._entities.buttons.sync_map
+        : this._entities.buttons.sync_schedule;
+    if (!entityId) return;
+
+    this._pressButton(entityId);
+
+    if (type === "map") {
+      this._syncingMap = true;
+    } else {
+      this._syncingSchedule = true;
+    }
+    this.requestUpdate();
+
+    setTimeout(() => {
+      if (type === "map") {
+        this._syncingMap = false;
+      } else {
+        this._syncingSchedule = false;
+      }
+      this.requestUpdate();
+    }, 3000);
   }
 
   _toggleSwitch(entityId) {
@@ -820,6 +905,51 @@ class MammotionCard extends LitElement {
         color: var(--secondary-text-color);
       }
 
+      /* Sync Button */
+      .sync-btn {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border: none;
+        border-radius: 50%;
+        background: var(--secondary-background-color, #f5f5f5);
+        color: var(--secondary-text-color);
+        cursor: pointer;
+        padding: 0;
+        transition: color 0.2s, background 0.2s;
+        flex-shrink: 0;
+      }
+
+      .sync-btn:hover {
+        color: var(--primary-text-color);
+        background: var(--divider-color, #e0e0e0);
+      }
+
+      .sync-btn:active {
+        opacity: 0.7;
+      }
+
+      .sync-btn svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .sync-btn.syncing svg {
+        animation: spin 1s linear infinite;
+      }
+
+      .sync-btn.syncing {
+        color: var(--state-active-color, #4caf50);
+      }
+
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+
       /* Config Grid */
       .config-grid {
         display: grid;
@@ -886,6 +1016,21 @@ class MammotionCard extends LitElement {
       .zone-name {
         font-size: 14px;
         color: var(--primary-text-color);
+      }
+
+      .zone-row.unavailable {
+        opacity: 0.45;
+      }
+
+      .zone-row.unavailable ha-switch {
+        pointer-events: none;
+      }
+
+      .unavailable-hint {
+        font-size: 11px;
+        color: var(--secondary-text-color);
+        font-style: italic;
+        margin-left: 4px;
       }
 
       /* Device Toggles */
