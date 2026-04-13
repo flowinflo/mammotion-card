@@ -441,10 +441,11 @@ class MammotionCard extends LitElement {
   }
 
   _isOrphanedArea(eid) {
-    // Filter orphaned entities: generic "area N" / "Area N" names when real named zones exist
-    const rawName = (this.hass.states[eid]?.attributes?.friendly_name || "").toLowerCase();
-    const stripped = rawName.replace(/^[a-z]+-[a-z0-9]+\s+/i, "").trim();
-    return /^(area|bereich)\s*\d*$/i.test(stripped);
+    // Filter orphaned entities: generic "area N" names when real named zones exist
+    // e.g. "Luba-MBGZ9JC5 Bereich area 2" → strip prefix → "Bereich area 2" → strip "Bereich " → "area 2"
+    const rawName = (this.hass.states[eid]?.attributes?.friendly_name || "");
+    const stripped = rawName.replace(/^[A-Za-z]+-[A-Za-z0-9]+\s+/, "").replace(/^Bereich\s+/i, "").trim();
+    return /^(area|bereich)[\s_]*\d*$/i.test(stripped);
   }
 
   _renderZonesContent() {
@@ -541,23 +542,7 @@ class MammotionCard extends LitElement {
           `
         : ""}
 
-      ${taskAreas.length > 0
-        ? html`
-            <div class="task-area-status">
-              ${taskAreas.map((eid) => {
-                const state = this.hass.states[eid];
-                if (!state || state.state === "unknown" || state.state === "unavailable") return "";
-                const rawName = state.attributes?.friendly_name || eid;
-                const label = rawName.replace(/^[A-Za-z]+-[A-Z0-9]+\s+/, "").replace(/^Aufgabenbereich\s*/, "") || "Bereich";
-                return html`
-                  <span class="task-area-pill ${this._taskAreaClass(state.state)}">
-                    ${label}: ${this._taskAreaLabel(state.state)}
-                  </span>
-                `;
-              })}
-            </div>
-          `
-        : ""}
+      ${taskAreas.length > 0 ? this._renderTaskAreaSummary(taskAreas) : ""}
 
       ${nonWorkHours && nonWorkHours !== "unknown" && nonWorkHours !== "unavailable"
         ? html`
@@ -1066,6 +1051,39 @@ class MammotionCard extends LitElement {
     if (rssi > -70) return "mdi:wifi-strength-2";
     if (rssi > -80) return "mdi:wifi-strength-1";
     return "mdi:wifi-strength-alert-outline";
+  }
+
+  _renderTaskAreaSummary(taskAreas) {
+    const states = taskAreas
+      .map((eid) => this.hass.states[eid]?.state?.toUpperCase())
+      .filter((s) => s && s !== "UNKNOWN" && s !== "UNAVAILABLE");
+    if (states.length === 0) return "";
+
+    const total = states.length;
+    const complete = states.filter((s) => s === "COMPLETE" || s === "COMPLETED").length;
+    const mowing = states.filter((s) => s === "MOWING").length;
+
+    let text, cssClass;
+    if (complete === total) {
+      text = "Alle Bereiche fertig";
+      cssClass = "completed";
+    } else if (mowing > 0) {
+      text = `Bereich ${complete + 1} von ${total} wird gemäht`;
+      cssClass = "active";
+    } else if (complete > 0) {
+      text = `${complete} von ${total} Bereichen fertig`;
+      cssClass = "completed";
+    } else {
+      text = "Wartet auf Start";
+      cssClass = "waiting";
+    }
+
+    return html`
+      <div class="task-area-summary ${cssClass}">
+        <ha-icon icon="${mowing > 0 ? "mdi:robot-mower" : complete === total ? "mdi:check-circle" : "mdi:timer-sand"}"></ha-icon>
+        <span>${text}</span>
+      </div>
+    `;
   }
 
   _taskAreaClass(state) {
@@ -1632,8 +1650,8 @@ class MammotionCard extends LitElement {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 6px 0;
-        min-height: 44px;
+        padding: 4px 0;
+        min-height: 36px;
       }
 
       .zone-divider {
@@ -1717,26 +1735,20 @@ class MammotionCard extends LitElement {
         text-overflow: ellipsis;
       }
 
-      .task-area-status {
+      .task-area-summary {
         display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
         margin-bottom: 8px;
       }
-
-      .task-area-pill {
-        display: inline-flex;
-        align-items: center;
-        padding: 2px 10px;
-        border-radius: 12px;
-        font-size: 11px;
-        font-weight: 500;
-      }
-
-      .task-area-pill.active { background: var(--state-active-color, #4caf50); color: white; }
-      .task-area-pill.waiting { background: var(--divider-color, #e0e0e0); color: var(--secondary-text-color); }
-      .task-area-pill.completed { background: var(--info-color, #2196f3); color: white; }
-      .task-area-pill.other { background: var(--warning-color, #ff9800); color: white; }
+      .task-area-summary ha-icon { --mdc-icon-size: 18px; }
+      .task-area-summary.active { background: var(--state-active-color, #4caf50); color: white; }
+      .task-area-summary.waiting { background: var(--divider-color, #e0e0e0); color: var(--secondary-text-color); }
+      .task-area-summary.completed { background: var(--info-color, #2196f3); color: white; }
 
       .schedule-info {
         display: grid;
