@@ -87,10 +87,28 @@ class MammotionCard extends LitElement {
       this._entities = discoverEntities(hass, this._config.entity);
     }
 
-    // Track mowing trail
-    this._updateMowingTrail(oldHass);
+    // Manage GPS polling based on mower state
+    const state = this._getMowerState();
+    if (state === "mowing") {
+      this._startGpsPolling();
+    } else {
+      if (this._gpsInterval) {
+        this._stopGpsPolling();
+        // Reset trail when leaving mowing
+        this._mowingTrail = [];
+        if (this._trailLine && this._leafletMap) {
+          this._leafletMap.removeLayer(this._trailLine);
+          this._trailLine = null;
+        }
+      }
+    }
 
     this.requestUpdate("hass", oldHass);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this._stopGpsPolling();
   }
 
   get hass() {
@@ -918,58 +936,126 @@ class MammotionCard extends LitElement {
     return `${Math.floor(m / 60)}h ${m % 60} Min`;
   }
 
-  // --- Mowing Trail ---
+  // --- GPS Polling + Trail ---
 
-  _updateMowingTrail(oldHass) {
-    if (!this._entities) return;
-    const state = this._getMowerState();
-    const oldState = oldHass ? getStateValue(oldHass, this._config.entity) : null;
+  _startGpsPolling() {
+    if (this._gpsInterval) return;
+    this._mowingTrail = this._mowingTrail || [];
+    this._gpsInterval = setInterval(() => this._pollGpsPosition(), 10000);
+    this._pollGpsPosition();
+  }
 
-    // Reset trail when leaving mowing state
-    if (oldState === "mowing" && state !== "mowing") {
-      this._mowingTrail = [];
-      if (this._trailLine && this._leafletMap) {
-        this._leafletMap.removeLayer(this._trailLine);
-        this._trailLine = null;
+  _stopGpsPolling() {
+    if (this._gpsInterval) {
+      clearInterval(this._gpsInterval);
+      this._gpsInterval = null;
+    }
+  }
+
+  async _pollGpsPosition() {
+    if (!this.hass || !this._entities?.device_tracker) return;
+    try {
+      const trackerEntity = this._entities.device_tracker;
+      let lat = this.hass.states[trackerEntity]?.attributes?.latitude;
+      let lng = this.hass.states[trackerEntity]?.attributes?.longitude;
+
+      // If unchanged from last poll, try fresh fetch via WS
+      if (lat === this._lastPolledLat && lng === this._lastPolledLng) {
+        try {
+          const result = await this.hass.callWS({ type: "get_states" });
+          const fresh = result.find(s => s.entity_id === trackerEntity);
+          if (fresh) {
+            lat = fresh.attributes.latitude;
+            lng = fresh.attributes.longitude;
+          }
+        } catch (e) { /* fallback to hass.states */ }
       }
-      return;
-    }
 
-    if (state !== "mowing") return;
+      if (!lat || !lng) return;
+      lat = Number(lat);
+      lng = Number(lng);
 
-    const gps = this._getGpsPosition();
-    if (!gps) return;
-    const { lat, lng } = gps;
+      console.log("GPS poll:", lat, lng, "changed:", lat !== this._lastPolledLat || lng !== this._lastPolledLng, "trail:", this._mowingTrail.length);
 
-    if (!this._mowingTrail) this._mowingTrail = [];
+      this._lastPolledLat = lat;
+      this._lastPolledLng = lng;
 
-    console.log("Trail check:", state, "tracker:", this._entities?.device_tracker, "lat:", lat, "lng:", lng, "trail:", this._mowingTrail.length);
-
-    // Check minimum distance (1m) from last point
-    if (this._mowingTrail.length > 0) {
-      const last = this._mowingTrail[this._mowingTrail.length - 1];
-      if (this._distanceMeters(last[0], last[1], lat, lng) < 1) return;
-    }
-
-    this._mowingTrail.push([lat, lng]);
-
-    // Cap at 500 points
-    if (this._mowingTrail.length > 500) {
-      this._mowingTrail.shift();
-      if (this._trailLine) this._trailLine.setLatLngs(this._mowingTrail);
-    }
-
-    // Update/create polyline on map
-    if (this._leafletMap) {
-      if (this._trailLine) {
-        this._trailLine.addLatLng([lat, lng]);
-      } else if (this._mowingTrail.length >= 2) {
-        this._trailLine = L.polyline(this._mowingTrail, {
-          color: "#4CAF50",
-          weight: 3,
-          opacity: 0.7,
-        }).addTo(this._leafletMap);
+      // Move marker + pan map
+      if (this._mapMarker && this._leafletMap) {
+        this._mapMarker.setLatLng([lat, lng]);
+        this._leafletMap.setView([lat, lng], this._leafletMap.getZoom(), { animate: true, duration: 1 });
       }
+
+      // Add trail point
+      if (this._mowingTrail.length === 0) {
+        this._mowingTrail.push([lat, lng]);
+      } else {
+        const last = this._mowingTrail[this._mowingTrail.length - 1];
+        if (this._distanceMeters(last[0], last[1], lat, lng) < 0.5) return;
+        this._mowingTrail.push([lat, lng]);
+      }
+
+      // Cap at 500 points
+      if (this._mowingTrail.length > 500) {
+        this._mowingTrail.shift();
+        if (this._trailLine) this._trailLine.setLatLngs(this._mowingTrail);
+      }
+
+      // Update/create polyline
+      if (this._leafletMap) {
+        if (this._trailLine) {
+          this._trailLine.addLatLng([lat, lng]);
+        } else if (this._mowingTrail.length >= 2) {
+          this._trailLine = L.polyline(this._mowingTrail, {
+            color: "#4CAF50", weight: 3, opacity: 0.7,
+          }).addTo(this._leafletMap);
+        }
+      }
+    } catch (e) {
+      console.error("GPS poll error:", e);
+    }
+  }
+
+  async _loadGpsHistory() {
+    if (!this.hass || !this._entities?.device_tracker) return;
+    try {
+      const trackerEntity = this._entities.device_tracker;
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+      const history = await this.hass.callApi(
+        "GET",
+        `history/period/${oneHourAgo}?filter_entity_id=${trackerEntity}&minimal_response`
+      );
+
+      if (!history?.[0]?.length) return;
+
+      const points = [];
+      for (const entry of history[0]) {
+        const lat = entry.attributes?.latitude;
+        const lng = entry.attributes?.longitude;
+        if (!lat || !lng) continue;
+        if (points.length === 0) {
+          points.push([Number(lat), Number(lng)]);
+        } else {
+          const last = points[points.length - 1];
+          if (this._distanceMeters(last[0], last[1], lat, lng) > 0.5) {
+            points.push([Number(lat), Number(lng)]);
+          }
+        }
+      }
+
+      if (points.length > 0) {
+        this._mowingTrail = points;
+        if (this._leafletMap) {
+          if (this._trailLine) this._trailLine.remove();
+          this._trailLine = L.polyline(this._mowingTrail, {
+            color: "#4CAF50", weight: 3, opacity: 0.7,
+          }).addTo(this._leafletMap);
+        }
+        console.log("Loaded GPS history:", points.length, "points");
+      }
+    } catch (e) {
+      console.error("Failed to load GPS history:", e);
     }
   }
 
@@ -1032,6 +1118,11 @@ class MammotionCard extends LitElement {
     }).addTo(this._leafletMap);
 
     setTimeout(() => this._leafletMap.invalidateSize(), 200);
+
+    // Load historical trail if mower is mowing
+    if (this._getMowerState() === "mowing") {
+      this._loadGpsHistory();
+    }
   }
 
   _updateMapMarker() {
@@ -1071,14 +1162,6 @@ class MammotionCard extends LitElement {
 
     if (!this._leafletMap && this._config?.modules?.map !== false) {
       await this._initMap();
-      // Re-draw existing trail after map re-init
-      if (this._leafletMap && this._mowingTrail?.length >= 2) {
-        this._trailLine = L.polyline(this._mowingTrail, {
-          color: "#4CAF50",
-          weight: 3,
-          opacity: 0.7,
-        }).addTo(this._leafletMap);
-      }
     }
     if (this._leafletMap) {
       this._updateMapMarker();
