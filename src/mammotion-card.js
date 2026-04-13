@@ -87,28 +87,7 @@ class MammotionCard extends LitElement {
       this._entities = discoverEntities(hass, this._config.entity);
     }
 
-    // Manage GPS polling based on mower state
-    const state = this._getMowerState();
-    if (state === "mowing") {
-      this._startGpsPolling();
-    } else {
-      if (this._gpsInterval) {
-        this._stopGpsPolling();
-        // Reset trail when leaving mowing
-        this._mowingTrail = [];
-        if (this._trailLine && this._leafletMap) {
-          this._leafletMap.removeLayer(this._trailLine);
-          this._trailLine = null;
-        }
-      }
-    }
-
     this.requestUpdate("hass", oldHass);
-  }
-
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    this._stopGpsPolling();
   }
 
   get hass() {
@@ -423,7 +402,9 @@ class MammotionCard extends LitElement {
   }
 
   _renderSelectAllZones() {
-    const areas = this._entities?.areas || [];
+    const allAreas = this._entities?.areas || [];
+    const hasNamed = allAreas.some((eid) => !this._isOrphanedArea(eid));
+    const areas = hasNamed ? allAreas.filter((eid) => !this._isOrphanedArea(eid)) : allAreas;
     const availableAreas = areas.filter((eid) =>
       this.hass.states[eid]?.state !== "unavailable"
     );
@@ -444,7 +425,9 @@ class MammotionCard extends LitElement {
   }
 
   async _toggleAllZones(turnOn) {
-    const areas = this._entities?.areas || [];
+    const allAreas = this._entities?.areas || [];
+    const hasNamed = allAreas.some((eid) => !this._isOrphanedArea(eid));
+    const areas = hasNamed ? allAreas.filter((eid) => !this._isOrphanedArea(eid)) : allAreas;
     const service = turnOn ? "turn_on" : "turn_off";
     try {
       for (const eid of areas) {
@@ -457,9 +440,20 @@ class MammotionCard extends LitElement {
     }
   }
 
+  _isOrphanedArea(eid) {
+    // Filter orphaned entities: generic "area N" / "Area N" names when real named zones exist
+    const rawName = (this.hass.states[eid]?.attributes?.friendly_name || "").toLowerCase();
+    const stripped = rawName.replace(/^[a-z]+-[a-z0-9]+\s+/i, "").trim();
+    return /^(area|bereich)\s*\d*$/i.test(stripped);
+  }
+
   _renderZonesContent() {
-    const areas = this._entities.areas;
-    if (!areas || areas.length === 0) return html`<div class="empty-hint">Keine Bereiche gefunden</div>`;
+    const allAreas = this._entities.areas;
+    if (!allAreas || allAreas.length === 0) return html`<div class="empty-hint">Keine Bereiche gefunden</div>`;
+
+    // Filter orphaned areas if named zones exist
+    const hasNamedZones = allAreas.some((eid) => !this._isOrphanedArea(eid));
+    const areas = hasNamedZones ? allAreas.filter((eid) => !this._isOrphanedArea(eid)) : allAreas;
 
     return html`
       <div class="zone-list">
@@ -936,138 +930,8 @@ class MammotionCard extends LitElement {
     return `${Math.floor(m / 60)}h ${m % 60} Min`;
   }
 
-  // --- GPS Polling + Trail ---
-
-  _startGpsPolling() {
-    if (this._gpsInterval) return;
-    this._mowingTrail = this._mowingTrail || [];
-    this._gpsInterval = setInterval(() => this._pollGpsPosition(), 10000);
-    this._pollGpsPosition();
-  }
-
-  _stopGpsPolling() {
-    if (this._gpsInterval) {
-      clearInterval(this._gpsInterval);
-      this._gpsInterval = null;
-    }
-  }
-
-  async _pollGpsPosition() {
-    if (!this.hass || !this._entities?.device_tracker) return;
-    try {
-      const trackerEntity = this._entities.device_tracker;
-      let lat = this.hass.states[trackerEntity]?.attributes?.latitude;
-      let lng = this.hass.states[trackerEntity]?.attributes?.longitude;
-
-      // If unchanged from last poll, try fresh fetch via WS
-      if (lat === this._lastPolledLat && lng === this._lastPolledLng) {
-        try {
-          const result = await this.hass.callWS({ type: "get_states" });
-          const fresh = result.find(s => s.entity_id === trackerEntity);
-          if (fresh) {
-            lat = fresh.attributes.latitude;
-            lng = fresh.attributes.longitude;
-          }
-        } catch (e) { /* fallback to hass.states */ }
-      }
-
-      if (!lat || !lng) return;
-      lat = Number(lat);
-      lng = Number(lng);
-
-      console.log("GPS poll:", lat, lng, "changed:", lat !== this._lastPolledLat || lng !== this._lastPolledLng, "trail:", this._mowingTrail.length);
-
-      this._lastPolledLat = lat;
-      this._lastPolledLng = lng;
-
-      // Move marker + pan map
-      if (this._mapMarker && this._leafletMap) {
-        this._mapMarker.setLatLng([lat, lng]);
-        this._leafletMap.setView([lat, lng], this._leafletMap.getZoom(), { animate: true, duration: 1 });
-      }
-
-      // Add trail point
-      if (this._mowingTrail.length === 0) {
-        this._mowingTrail.push([lat, lng]);
-      } else {
-        const last = this._mowingTrail[this._mowingTrail.length - 1];
-        if (this._distanceMeters(last[0], last[1], lat, lng) < 0.5) return;
-        this._mowingTrail.push([lat, lng]);
-      }
-
-      // Cap at 500 points
-      if (this._mowingTrail.length > 500) {
-        this._mowingTrail.shift();
-        if (this._trailLine) this._trailLine.setLatLngs(this._mowingTrail);
-      }
-
-      // Update/create polyline
-      if (this._leafletMap) {
-        if (this._trailLine) {
-          this._trailLine.addLatLng([lat, lng]);
-        } else if (this._mowingTrail.length >= 2) {
-          this._trailLine = L.polyline(this._mowingTrail, {
-            color: "#4CAF50", weight: 3, opacity: 0.7,
-          }).addTo(this._leafletMap);
-        }
-      }
-    } catch (e) {
-      console.error("GPS poll error:", e);
-    }
-  }
-
-  async _loadGpsHistory() {
-    if (!this.hass || !this._entities?.device_tracker) return;
-    try {
-      const trackerEntity = this._entities.device_tracker;
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-
-      const history = await this.hass.callApi(
-        "GET",
-        `history/period/${oneHourAgo}?filter_entity_id=${trackerEntity}&minimal_response`
-      );
-
-      if (!history?.[0]?.length) return;
-
-      const points = [];
-      for (const entry of history[0]) {
-        const lat = entry.attributes?.latitude;
-        const lng = entry.attributes?.longitude;
-        if (!lat || !lng) continue;
-        if (points.length === 0) {
-          points.push([Number(lat), Number(lng)]);
-        } else {
-          const last = points[points.length - 1];
-          if (this._distanceMeters(last[0], last[1], lat, lng) > 0.5) {
-            points.push([Number(lat), Number(lng)]);
-          }
-        }
-      }
-
-      if (points.length > 0) {
-        this._mowingTrail = points;
-        if (this._leafletMap) {
-          if (this._trailLine) this._trailLine.remove();
-          this._trailLine = L.polyline(this._mowingTrail, {
-            color: "#4CAF50", weight: 3, opacity: 0.7,
-          }).addTo(this._leafletMap);
-        }
-        console.log("Loaded GPS history:", points.length, "points");
-      }
-    } catch (e) {
-      console.error("Failed to load GPS history:", e);
-    }
-  }
-
-  _distanceMeters(lat1, lng1, lat2, lng2) {
-    const R = 6371000;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) ** 2 +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLng / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  }
+  // GPS trail disabled — Mammotion-HA integration only provides ~5 unique
+  // positions per 6h session, insufficient for trail rendering. See GitHub issue.
 
   // --- Leaflet Map ---
 
@@ -1118,11 +982,6 @@ class MammotionCard extends LitElement {
     }).addTo(this._leafletMap);
 
     setTimeout(() => this._leafletMap.invalidateSize(), 200);
-
-    // Load historical trail if mower is mowing
-    if (this._getMowerState() === "mowing") {
-      this._loadGpsHistory();
-    }
   }
 
   _updateMapMarker() {
@@ -1156,7 +1015,6 @@ class MammotionCard extends LitElement {
         this._leafletMap.remove();
         this._leafletMap = null;
         this._mapMarker = null;
-        this._trailLine = null;
       }
     }
 
