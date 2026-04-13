@@ -928,10 +928,12 @@ class MammotionCard extends LitElement {
 
     if (!this._mowingTrail) this._mowingTrail = [];
 
-    // Check minimum distance (3m) from last point
+    console.log("Trail check:", state, lat, lng, this._mowingTrail.length);
+
+    // Check minimum distance (1m) from last point
     if (this._mowingTrail.length > 0) {
       const last = this._mowingTrail[this._mowingTrail.length - 1];
-      if (this._distanceMeters(last[0], last[1], lat, lng) < 3) return;
+      if (this._distanceMeters(last[0], last[1], lat, lng) < 1) return;
     }
 
     this._mowingTrail.push([lat, lng]);
