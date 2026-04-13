@@ -1044,8 +1044,28 @@ class MammotionCard extends LitElement {
 
   async updated(changedProps) {
     super.updated(changedProps);
+
+    // Detect if Lit re-rendered the map container (old DOM node is orphaned)
+    if (this._leafletMap) {
+      const container = this.renderRoot.querySelector("#mmc-map");
+      if (!container || !container.contains(this._leafletMap.getContainer())) {
+        this._leafletMap.remove();
+        this._leafletMap = null;
+        this._mapMarker = null;
+        this._trailLine = null;
+      }
+    }
+
     if (!this._leafletMap && this._config?.modules?.map !== false) {
       await this._initMap();
+      // Re-draw existing trail after map re-init
+      if (this._leafletMap && this._mowingTrail?.length >= 2) {
+        this._trailLine = L.polyline(this._mowingTrail, {
+          color: "#4CAF50",
+          weight: 3,
+          opacity: 0.7,
+        }).addTo(this._leafletMap);
+      }
     }
     if (this._leafletMap) {
       this._updateMapMarker();
