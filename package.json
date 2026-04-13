@@ -1,6 +1,6 @@
 {
   "name": "mammotion-card",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Custom Lovelace Card for Mammotion Luba robotic mowers",
   "main": "dist/mammotion-card.js",
   "type": "module",

@@ -3,7 +3,7 @@ import { discoverEntities, getStateValue, getNumericState, translateOption } fro
 import "./editor.js";
 
 // Camera module disabled - WebRTC stream requires active mowing session
-const CARD_VERSION = "0.8.0";
+const CARD_VERSION = "0.9.0";
 
 class MammotionCard extends LitElement {
   static get properties() {
@@ -86,6 +86,9 @@ class MammotionCard extends LitElement {
     if (!this._entities || !oldHass) {
       this._entities = discoverEntities(hass, this._config.entity);
     }
+
+    // Track mowing trail
+    this._updateMowingTrail(oldHass);
 
     this.requestUpdate("hass", oldHass);
   }
@@ -234,6 +237,8 @@ class MammotionCard extends LitElement {
           ? this._renderMapHero(displayName, deviceId, state, battery, isCharging)
           : this._renderSimpleHeader(displayName, deviceId, state, battery, isCharging)}
 
+        ${state === "mowing" || state === "paused" ? this._renderMowingProgress(state) : ""}
+
         <div class="card-content">
           ${state === "error" && errorMsg
             ? html`<div class="error-msg-banner">
@@ -344,25 +349,8 @@ class MammotionCard extends LitElement {
   // --- Module renderers ---
 
   _renderControls(state) {
-    const progress = getNumericState(this.hass, this._entities.sensors.progress);
-    const elapsed = getNumericState(this.hass, this._entities.sensors.elapsed_time);
-    const remaining = getNumericState(this.hass, this._entities.sensors.left_time);
-
     return html`
       <div class="controls">
-        ${state === "mowing"
-          ? html`
-              <div class="progress-bar">
-                <div class="progress-fill" style="width: ${progress || 0}%"></div>
-                <span class="progress-text">${progress || 0}%</span>
-              </div>
-              <div class="time-row">
-                ${elapsed !== null ? html`<span>${this._formatMinutes(elapsed)} vergangen</span>` : ""}
-                ${remaining !== null ? html`<span>${this._formatMinutes(remaining)} verbleibend</span>` : ""}
-              </div>
-            `
-          : ""}
-
         <div class="button-row">
           ${state === "docked" || state === "paused"
             ? html`
@@ -885,6 +873,99 @@ class MammotionCard extends LitElement {
     }, 4000);
   }
 
+  // --- Mowing Progress Bar ---
+
+  _renderMowingProgress(state) {
+    const progress = getNumericState(this.hass, this._entities.sensors.progress);
+    const elapsed = getNumericState(this.hass, this._entities.sensors.elapsed_time);
+    const remaining = getNumericState(this.hass, this._entities.sensors.left_time);
+    const area = getNumericState(this.hass, this._entities.sensors.area);
+    const total = elapsed !== null && remaining !== null ? elapsed + remaining : null;
+    const barColor = state === "paused" ? "#ff9800" : "#4CAF50";
+
+    return html`
+      <div class="mowing-progress">
+        <div class="mowing-bar">
+          <div class="mowing-bar-fill" style="width:${progress || 0}%; background:${barColor}"></div>
+        </div>
+        <div class="mowing-stats">
+          <span>${progress !== null ? `${progress}%` : "--"}${area !== null ? ` · ${area} m\u00B2` : ""}</span>
+          <span>${this._fmtTime(elapsed)} / ${this._fmtTime(total)}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  _fmtTime(minutes) {
+    if (minutes === null || minutes === undefined) return "--";
+    const m = Math.round(minutes);
+    if (m < 60) return `${m} Min`;
+    return `${Math.floor(m / 60)}h ${m % 60} Min`;
+  }
+
+  // --- Mowing Trail ---
+
+  _updateMowingTrail(oldHass) {
+    if (!this._entities) return;
+    const state = this._getMowerState();
+    const oldState = oldHass ? getStateValue(oldHass, this._config.entity) : null;
+
+    // Reset trail when leaving mowing state
+    if (oldState === "mowing" && state !== "mowing") {
+      this._mowingTrail = [];
+      if (this._trailLine && this._leafletMap) {
+        this._leafletMap.removeLayer(this._trailLine);
+        this._trailLine = null;
+      }
+      return;
+    }
+
+    if (state !== "mowing") return;
+
+    const lat = getNumericState(this.hass, this._entities.sensors.latitude);
+    const lng = getNumericState(this.hass, this._entities.sensors.longitude);
+    if (lat === null || lng === null) return;
+
+    if (!this._mowingTrail) this._mowingTrail = [];
+
+    // Check minimum distance (3m) from last point
+    if (this._mowingTrail.length > 0) {
+      const last = this._mowingTrail[this._mowingTrail.length - 1];
+      if (this._distanceMeters(last[0], last[1], lat, lng) < 3) return;
+    }
+
+    this._mowingTrail.push([lat, lng]);
+
+    // Cap at 500 points
+    if (this._mowingTrail.length > 500) {
+      this._mowingTrail.shift();
+      if (this._trailLine) this._trailLine.setLatLngs(this._mowingTrail);
+    }
+
+    // Update/create polyline on map
+    if (this._leafletMap) {
+      if (this._trailLine) {
+        this._trailLine.addLatLng([lat, lng]);
+      } else if (this._mowingTrail.length >= 2) {
+        this._trailLine = L.polyline(this._mowingTrail, {
+          color: "#4CAF50",
+          weight: 3,
+          opacity: 0.7,
+        }).addTo(this._leafletMap);
+      }
+    }
+  }
+
+  _distanceMeters(lat1, lng1, lat2, lng2) {
+    const R = 6371000;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
   // --- Leaflet Map ---
 
   async _loadLeaflet() {
@@ -944,11 +1025,13 @@ class MammotionCard extends LitElement {
     if (lat === null || lng === null) return;
 
     this._mapMarker.setLatLng([lat, lng]);
-    const color = this._markerColor(this._getMowerState());
-    this._mapMarker.setStyle({ fillColor: color });
+    const state = this._getMowerState();
+    const color = this._markerColor(state);
+    const radius = state === "mowing" ? 10 : 8;
+    this._mapMarker.setStyle({ fillColor: color, radius });
 
-    if (this._getMowerState() === "mowing") {
-      this._leafletMap.panTo([lat, lng], { animate: true });
+    if (state === "mowing") {
+      this._leafletMap.setView([lat, lng], this._leafletMap.getZoom(), { animate: true });
     }
   }
 
@@ -1325,6 +1408,32 @@ class MammotionCard extends LitElement {
       @keyframes pulse {
         0%, 100% { opacity: 1; }
         50% { opacity: 0.5; }
+      }
+
+      /* ===== Mowing Progress ===== */
+      .mowing-progress {
+        padding: 8px 16px 12px;
+      }
+
+      .mowing-bar {
+        height: 6px;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 6px;
+      }
+
+      .mowing-bar-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 1s ease;
+      }
+
+      .mowing-stats {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: var(--secondary-text-color, #aaa);
       }
 
       /* ===== Controls ===== */
