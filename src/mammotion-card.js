@@ -107,6 +107,22 @@ class MammotionCard extends LitElement {
     return getStateValue(this.hass, this._config.entity) || "unknown";
   }
 
+  _getGpsPosition() {
+    // Primary: device_tracker attributes (updates every ~15s)
+    const tracker = this._entities?.device_tracker;
+    if (tracker) {
+      const state = this.hass.states[tracker];
+      const lat = state?.attributes?.latitude;
+      const lng = state?.attributes?.longitude;
+      if (lat != null && lng != null) return { lat: Number(lat), lng: Number(lng) };
+    }
+    // Fallback: sensor entities (RTK, updates rarely)
+    const lat = getNumericState(this.hass, this._entities?.sensors?.latitude);
+    const lng = getNumericState(this.hass, this._entities?.sensors?.longitude);
+    if (lat !== null && lng !== null) return { lat, lng };
+    return null;
+  }
+
   _stateIcon(state) {
     const icons = {
       mowing: "mdi:robot-mower",
@@ -275,9 +291,8 @@ class MammotionCard extends LitElement {
     const satellites = getNumericState(this.hass, this._entities.sensors.satellites_robot);
     const rtk = getStateValue(this.hass, this._entities.sensors.rtk_position);
     const wifiRssi = getNumericState(this.hass, this._entities.sensors.wifi_rssi);
-    const lat = getNumericState(this.hass, this._entities.sensors.latitude);
-    const lng = getNumericState(this.hass, this._entities.sensors.longitude);
-    const hasGps = lat !== null && lng !== null;
+    const gps = this._getGpsPosition();
+    const hasGps = gps !== null;
 
     return html`
       <div class="map-hero">
@@ -922,13 +937,13 @@ class MammotionCard extends LitElement {
 
     if (state !== "mowing") return;
 
-    const lat = getNumericState(this.hass, this._entities.sensors.latitude);
-    const lng = getNumericState(this.hass, this._entities.sensors.longitude);
-    if (lat === null || lng === null) return;
+    const gps = this._getGpsPosition();
+    if (!gps) return;
+    const { lat, lng } = gps;
 
     if (!this._mowingTrail) this._mowingTrail = [];
 
-    console.log("Trail check:", state, lat, lng, this._mowingTrail.length);
+    console.log("Trail check:", state, "tracker:", this._entities?.device_tracker, "lat:", lat, "lng:", lng, "trail:", this._mowingTrail.length);
 
     // Check minimum distance (1m) from last point
     if (this._mowingTrail.length > 0) {
@@ -985,9 +1000,8 @@ class MammotionCard extends LitElement {
     const container = this.renderRoot.querySelector("#mmc-map");
     if (!container) return;
 
-    const lat = getNumericState(this.hass, this._entities.sensors.latitude);
-    const lng = getNumericState(this.hass, this._entities.sensors.longitude);
-    if (lat === null || lng === null) return;
+    const gps = this._getGpsPosition();
+    if (!gps) return;
 
     await this._loadLeaflet();
     if (!window.L || this._leafletMap) return;
@@ -1001,7 +1015,7 @@ class MammotionCard extends LitElement {
       boxZoom: false,
       keyboard: false,
       attributionControl: false,
-    }).setView([lat, lng], 19);
+    }).setView([gps.lat, gps.lng], 19);
 
     L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
@@ -1009,7 +1023,7 @@ class MammotionCard extends LitElement {
     ).addTo(this._leafletMap);
 
     const color = this._markerColor(this._getMowerState());
-    this._mapMarker = L.circleMarker([lat, lng], {
+    this._mapMarker = L.circleMarker([gps.lat, gps.lng], {
       radius: 8,
       color: "#fff",
       fillColor: color,
@@ -1022,18 +1036,17 @@ class MammotionCard extends LitElement {
 
   _updateMapMarker() {
     if (!this._leafletMap || !this._mapMarker) return;
-    const lat = getNumericState(this.hass, this._entities.sensors.latitude);
-    const lng = getNumericState(this.hass, this._entities.sensors.longitude);
-    if (lat === null || lng === null) return;
+    const gps = this._getGpsPosition();
+    if (!gps) return;
 
-    this._mapMarker.setLatLng([lat, lng]);
+    this._mapMarker.setLatLng([gps.lat, gps.lng]);
     const state = this._getMowerState();
     const color = this._markerColor(state);
     const radius = state === "mowing" ? 10 : 8;
     this._mapMarker.setStyle({ fillColor: color, radius });
 
     if (state === "mowing") {
-      this._leafletMap.setView([lat, lng], this._leafletMap.getZoom(), { animate: true });
+      this._leafletMap.setView([gps.lat, gps.lng], this._leafletMap.getZoom(), { animate: true });
     }
   }
 
